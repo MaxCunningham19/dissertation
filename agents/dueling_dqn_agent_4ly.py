@@ -9,6 +9,7 @@ from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool
 
 from .ReplayBuffer import ReplayBuffer
 
+
 Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"))
 
 
@@ -19,22 +20,38 @@ class QN(nn.Module):
 
     def __init__(self, state_number, hidlyr_nodes, action_number):
         super(QN, self).__init__()
-        self.fc1 = nn.Linear(state_number, hidlyr_nodes)  # first conected layer
-        self.fc2 = nn.Linear(hidlyr_nodes, hidlyr_nodes * 2)  # second conected layer
-        self.fc3 = nn.Linear(hidlyr_nodes * 2, hidlyr_nodes * 4)  # third conected layer
-        self.fc4 = nn.Linear(hidlyr_nodes * 4, hidlyr_nodes * 8)  # fourth conected layer
-        self.out = nn.Linear(hidlyr_nodes * 8, action_number)  # output layer
+        # Shared layers
+        self.fc1 = nn.Linear(state_number, hidlyr_nodes)  # first connected layer
+        self.fc2 = nn.Linear(hidlyr_nodes, hidlyr_nodes * 2)  # second connected layer
+        self.fc3 = nn.Linear(hidlyr_nodes * 2, hidlyr_nodes * 4)  # third connected layer
+        self.fc4 = nn.Linear(hidlyr_nodes * 4, hidlyr_nodes * 8)  # fourth connected layer
+
+        # State-value stream
+        self.value_fc = nn.Linear(hidlyr_nodes * 8, 1)  # Output single state-value
+
+        # Advantage stream
+        self.advantage_fc = nn.Linear(hidlyr_nodes * 8, action_number)  # Output advantages for all actions
 
     def forward(self, state):
         x = F.relu(self.fc1(state))  # relu activation of fc1
         x = F.relu(self.fc2(x))  # relu activation of fc2
         x = F.relu(self.fc3(x))  # relu activation of fc3
         x = F.relu(self.fc4(x))  # relu activation of fc4
-        x = self.out(x)  # calculate output
-        return x
+
+        # Compute value and advantage streams
+        value = self.value_fc(x)
+        advantage = self.advantage_fc(x)
+
+        # Combine value and advantage streams to compute Q-values
+        q_values = value + (advantage - torch.mean(advantage, dim=1, keepdim=True))
+        return q_values
+
+    def save_model(self, path):
+        print("..saving model...")
+        torch.save(self.policy_net.state_dict(), path)
 
 
-class DQN(object):
+class DUELING_DQN(object):
     def __init__(
         self,
         input_shape,
@@ -54,12 +71,13 @@ class DQN(object):
         seed=404,
         device=None,
         hidlyr_nodes=128,
+        path="./savedNets",
     ):
 
         self.input_shape = input_shape
         self.num_actions = num_actions
         self.num_states = self.input_shape[0]
-
+        self.path = path
         self.random_seed = seed
 
         # Learning parameters
