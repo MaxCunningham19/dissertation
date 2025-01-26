@@ -44,7 +44,7 @@ class QN(nn.Module):
 
         # Combine value and advantage streams to compute Q-values
         q_values = value + (advantage - torch.mean(advantage, dim=1, keepdim=True))
-        return q_values
+        return q_values, value, advantage
 
     def save_model(self, path):
         print("..saving model...")
@@ -115,7 +115,7 @@ class DUELING_DQN(object):
             state = x
         a = self.policy_net.eval()
         with torch.no_grad():
-            action_values = self.policy_net(state)
+            action_values, _, _ = self.policy_net(state)
 
         self.policy_net.train()
 
@@ -131,9 +131,9 @@ class DUELING_DQN(object):
         if len(self.replayMemory) > self.batch_size:
             (states, actions, rewards, next_states, probabilities, experiences_idx, dones) = self.replayMemory.sample()
 
-            current_qs = self.policy_net(states).gather(1, actions)
-            next_actions = self.policy_net(next_states).detach().max(1)[1].unsqueeze(1)
-            max_next_qs = self.target_net(next_states).detach().gather(1, next_actions)
+            current_qs = self.policy_net(states)[0].gather(1, actions)
+            next_actions = self.policy_net(next_states)[0].detach().max(1)[1].unsqueeze(1)
+            max_next_qs = self.target_net(next_states)[0].detach().gather(1, next_actions)
             target_qs = rewards + self.gamma * max_next_qs * (1 - dones)
 
             is_weights = np.power(probabilities * len(self.replayMemory), -self.beta)
@@ -151,8 +151,6 @@ class DUELING_DQN(object):
 
             self.soft_update(self.policy_net, self.target_net, self.tau)
             self.update_params()
-        else:
-            print("memory not big enough yet \n\n")
 
     def soft_update(self, originNet, targetNet, tau):
         for target_param, local_param in zip(targetNet.parameters(), originNet.parameters()):
