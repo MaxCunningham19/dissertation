@@ -13,13 +13,13 @@ from .ReplayBuffer import ReplayBuffer
 Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"))
 
 
-class QN(nn.Module):
+class DuelingQN(nn.Module):
     """
-    Basic Model of a Q network
+    Model of a Dueling Q-network
     """
 
     def __init__(self, state_number, hidlyr_nodes, action_number):
-        super(QN, self).__init__()
+        super(DuelingQN, self).__init__()
         # Shared layers
         self.fc1 = nn.Linear(state_number, hidlyr_nodes)  # first connected layer
         self.fc2 = nn.Linear(hidlyr_nodes, hidlyr_nodes * 2)  # second connected layer
@@ -43,12 +43,16 @@ class QN(nn.Module):
         advantage = self.advantage_fc(x)
 
         # Combine value and advantage streams to compute Q-values
-        q_values = value + (advantage - torch.mean(advantage, dim=1, keepdim=True))
+        q_values = value + (advantage - torch.max(advantage, dim=1, keepdim=True).values)
         return q_values, value, advantage
 
     def save_model(self, path):
-        print("..saving model...")
-        torch.save(self.policy_net.state_dict(), path)
+        """Save Model at location `path`"""
+        torch.save(self.state_dict(), path)
+
+    def load_model(self, path):
+        """Load Model from location `path`"""
+        self.load_state_dict(torch.load(path))
 
 
 class DUELING_DQN(object):
@@ -56,7 +60,6 @@ class DUELING_DQN(object):
         self,
         input_shape,
         num_actions,
-        net_sync_rate=1024,
         batch_size=1024,
         epsilon=0.25,
         epsilon_decay=0.9999,
@@ -71,13 +74,11 @@ class DUELING_DQN(object):
         seed=404,
         device=None,
         hidlyr_nodes=128,
-        path="./savedNets",
     ):
 
         self.input_shape = input_shape
         self.num_actions = num_actions
         self.num_states = self.input_shape[0]
-        self.path = path
         self.random_seed = seed
 
         # Learning parameters
@@ -99,8 +100,8 @@ class DUELING_DQN(object):
 
         self.q_episode_loss = []
 
-        self.policy_net = QN(self.num_states, hidlyr_nodes, self.num_actions)
-        self.target_net = QN(self.num_states, hidlyr_nodes, self.num_actions)
+        self.policy_net = DuelingQN(self.num_states, hidlyr_nodes, self.num_actions)
+        self.target_net = DuelingQN(self.num_states, hidlyr_nodes, self.num_actions)
         self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=learning_rate)
 
         if device is not None:
@@ -117,12 +118,22 @@ class DUELING_DQN(object):
         with torch.no_grad():
             action_values, _, _ = self.policy_net(state)
 
-        self.policy_net.train()
-
         if random.random() > self.epsilon:
             return np.argmax(action_values.cpu().data.numpy())
         else:
             return random.choice(np.arange(self.num_actions))
+
+    def get_actions(self, x):
+        if type(x).__name__ == "ndarray":
+            state = torch.from_numpy(x).float().unsqueeze(0).to(self.device)
+        else:
+            state = x
+        a = self.policy_net.eval()
+        with torch.no_grad():
+            action_values = self.policy_net(state)
+
+        # q_value, state_value, advantage
+        return action_values[0], action_values[1], action_values[2]
 
     def store_memory(self, state, action, reward, next_state, done):
         self.replayMemory.add(state, action, reward, next_state, done)
@@ -161,11 +172,10 @@ class DUELING_DQN(object):
         self.beta = min(1.0, self.beta_inc * self.beta)
 
     def save_net(self, path):
-        torch.save(self.policy_net.state_dict(), path)
-        print("Net saved")
+        self.policy_net.save_model(path)
 
     def load_net(self, path):
-        self.policy_net.load_state_dict(torch.load(path)), self.target_net.load_state_dict(torch.load(path))
+        self.policy_net.load_model(path), self.target_net.load_model(path)
         self.policy_net.eval(), self.target_net.eval()
 
     def collect_loss_info(self):
