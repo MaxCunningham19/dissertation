@@ -6,8 +6,15 @@ from PIL import Image
 import random
 from gym.spaces import Box, Discrete, Dict
 
+
+COST_NOOP = 0.01
+COST_MOVE = 0.1
+COST_DIAG_MOVE = 0.15
+BOUNDRY_HIT_COST = 0.1
 ACTION_ARRAY = [(0, 0), (0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (1, -1), (-1, 1), (1, 1)]
-ACTION_COST = [0.01, 0.1, 0.1, 0.1, 0.1, 0.15, 0.15, 0.15, 0.15]
+ACTION_COST = [COST_NOOP, COST_MOVE, COST_MOVE, COST_MOVE, COST_MOVE, COST_DIAG_MOVE, COST_DIAG_MOVE, COST_DIAG_MOVE, COST_DIAG_MOVE]
+LIFE_COST = 0.5
+SAFE_REWARDS = 2.0
 
 
 class TestSimpleMOEnv(gym.Env):
@@ -41,24 +48,24 @@ class TestSimpleMOEnv(gym.Env):
     def step(self, action):
 
         action_move = ACTION_ARRAY[action]
-        reward = [-ACTION_COST[action], -ACTION_COST[action]]
-
-        if self.steps >= self.max_steps:
-            return self.get_obs(), reward, False, True, {}
+        reward = [-ACTION_COST[action] - LIFE_COST, -ACTION_COST[action] - LIFE_COST]
         self.steps += 1
-
-        if self.agent[0] == 0:
-            reward[0] = reward[0] + 1
-
-        if self.agent[1] == 0:
-            reward[1] = reward[1] + 1
 
         new_location = (self.agent[0] + action_move[0], self.agent[1] + action_move[1])
         done = False
         if new_location[0] >= 0 and new_location[0] < self.width and new_location[1] >= 0 and new_location[1] < self.height:
             self.agent = new_location
+        else:
+            reward[0] = reward[0] - BOUNDRY_HIT_COST
+            reward[1] = reward[1] - BOUNDRY_HIT_COST
 
-        return self.get_obs(), reward, done, False, {}
+        if self.agent[0] == 0:
+            reward[0] = reward[0] + SAFE_REWARDS
+
+        if self.agent[1] == 0:
+            reward[1] = reward[1] + SAFE_REWARDS
+
+        return self.get_obs(), reward, done, self.steps >= self.max_steps, {}
 
     def get_obs(self):
         return np.array([self.agent[0], self.agent[1]], dtype=np.int32)

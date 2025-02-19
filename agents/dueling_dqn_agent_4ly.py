@@ -33,17 +33,28 @@ class DuelingQN(nn.Module):
         self.advantage_fc = nn.Linear(hidlyr_nodes * 8, action_number)  # Output advantages for all actions
 
     def forward(self, state):
-        x = F.relu(self.fc1(state))  # relu activation of fc1
-        x = F.relu(self.fc2(x))  # relu activation of fc2
-        x = F.relu(self.fc3(x))  # relu activation of fc3
-        x = F.relu(self.fc4(x))  # relu activation of fc4
+        print("Input state:", torch.isnan(state).any())
+        x = F.relu(self.fc1(state))
+        print("After fc1:", torch.isnan(x).any())
 
-        # Compute value and advantage streams
+        x = F.relu(self.fc2(x))
+        print("After fc2:", torch.isnan(x).any())
+
+        x = F.relu(self.fc3(x))
+        print("After fc3:", torch.isnan(x).any())
+
+        x = F.relu(self.fc4(x))
+        print("After fc4:", torch.isnan(x).any())
+
+        # Check value stream
         value = self.value_fc(x)
+        print("Value stream:", torch.isnan(value).any())
+
         advantage = self.advantage_fc(x)
+        print("Advantage stream:", torch.isnan(advantage).any())
 
         # Combine value and advantage streams to compute Q-values
-        q_values = value + (advantage - torch.max(advantage, dim=1, keepdim=True).values)
+        q_values = value + (advantage - torch.mean(advantage, dim=1, keepdim=True))
         return q_values, value, advantage
 
     def save_model(self, path):
@@ -141,7 +152,17 @@ class DUELING_DQN(object):
     def train(self):
         if len(self.replayMemory) > self.batch_size:
             (states, actions, rewards, next_states, probabilities, experiences_idx, dones) = self.replayMemory.sample()
-
+            print("states:", states, torch.isnan(states), torch.isnan(states).any())
+            print("actions:", actions, torch.isnan(states), torch.isnan(states).any())
+            print("rewards:", rewards, torch.isnan(states), torch.isnan(states).any())
+            print("next_states:", next_states, torch.isnan(states), torch.isnan(states).any())
+            print("probabilities:", probabilities, np.isnan(np.array(probabilities)).any())
+            print("experiences_idx:", experiences_idx, np.isnan(np.array(experiences_idx)).any())
+            print("dones:", dones, torch.isnan(dones).any())
+            c_qs, c_v, c_a = self.policy_net(states)
+            print("c_q", torch.isnan(c_qs).any())
+            print("c_v", torch.isnan(c_v).any())
+            print("c_a", torch.isnan(c_a).any())
             current_qs = self.policy_net(states)[0].gather(1, actions)
             next_actions = self.policy_net(next_states)[0].detach().max(1)[1].unsqueeze(1)
             max_next_qs = self.target_net(next_states)[0].detach().gather(1, next_actions)
@@ -155,6 +176,17 @@ class DUELING_DQN(object):
             self.q_episode_loss.append(loss.detach().cpu().numpy())
 
             td_errors = (target_qs - current_qs).detach().cpu().numpy()
+            print(
+                "dqn, target_qs",
+                target_qs,
+                torch.isnan(target_qs).any(),
+                "\ndqn, currentqs",
+                current_qs,
+                torch.isnan(current_qs).any(),
+                "\ndqn, tderror",
+                td_errors,
+                np.isnan(np.array(td_errors)).any(),
+            )
             self.replayMemory.update_priorities(experiences_idx, td_errors, self.per_epsilon)
             self.optimizer.zero_grad()
             loss.backward()
@@ -170,6 +202,7 @@ class DUELING_DQN(object):
     def update_params(self):
         self.epsilon = max(self.epsilon_min, self.epsilon_decay * self.epsilon)
         self.beta = min(1.0, self.beta_inc * self.beta)
+        print(self.epsilon, self.beta)
 
     def save_net(self, path):
         self.policy_net.save_model(path)
