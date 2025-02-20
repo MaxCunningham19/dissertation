@@ -1,6 +1,6 @@
 import numpy as np
 
-from EpsilonGreedy import EpsilonGreedy
+from .EpsilonGreedy import EpsilonGreedy
 
 
 class DecayEpsilonGreedy(EpsilonGreedy):

@@ -1,7 +1,7 @@
 from typing import Callable, Any, Hashable
 import numpy as np
 
-from ExplorationStrategy import ExplorationStrategy
+from .ExplorationStrategy import ExplorationStrategy
 
 MIN_PHEROMONE = 1.0
 NON_ZERO = 1e-6
@@ -46,3 +46,6 @@ class Pheromones(ExplorationStrategy):
             for i in range(len(pheromones)):
                 pheromones[i] = max(self.pheromone_min, pheromones[i] * self.pheromone_decay)
             self.pheromones[state] = pheromones
+
+    def info(self):
+        return self.pheromones, self.alpha, self.beta

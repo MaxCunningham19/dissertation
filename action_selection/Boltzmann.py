@@ -1,6 +1,6 @@
 import numpy as np
 
-from ExplorationStrategy import ExplorationStrategy
+from .ExplorationStrategy import ExplorationStrategy
 
 MIN_TEMPERATURE = 1e-6  # Prevents divby zero
 
@@ -17,3 +17,6 @@ class Boltzmann(ExplorationStrategy):
 
     def update_parameters(self):
         return
+
+    def info(self):
+        return self.temperature

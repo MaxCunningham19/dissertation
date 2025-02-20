@@ -1,6 +1,6 @@
 import numpy as np
 
-from Boltzmann import Boltzmann
+from .Boltzmann import Boltzmann
 
 
 class DecayBoltzmann(Boltzmann):

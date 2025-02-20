@@ -26,3 +26,8 @@ class ExplorationStrategy(ABC):
         Updates heuristic parameters
         """
         pass
+
+    @abstractmethod
+    def info(self):
+        """Returns the current parameters of the strategy"""
+        pass

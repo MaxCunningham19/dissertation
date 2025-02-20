@@ -1,6 +1,6 @@
 import numpy as np
 
-from ExplorationStrategy import ExplorationStrategy
+from .ExplorationStrategy import ExplorationStrategy
 
 
 class EpsilonGreedy(ExplorationStrategy):
@@ -15,3 +15,6 @@ class EpsilonGreedy(ExplorationStrategy):
 
     def update_parameters(self):
         return
+
+    def info(self):
+        return self.epsilon
