@@ -2,4 +2,4 @@ venv
 videos/demo
 agents/savedNets/demo
 .vscode/
-*/__pycache__
+__pycache__
