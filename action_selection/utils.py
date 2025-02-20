@@ -20,4 +20,4 @@ def create_exploration_strategy(strategy_name: str, *args, **kwargs) -> Explorat
     if strategy_name not in strategies:
         raise ValueError(f"Unknown exploration strategy: {strategy_name}")
 
-    return strategies[strategy_name](*args, **kwargs)  # Initialize with provided arguments
+    return strategies[strategy_name](*args, **kwargs)  # initialize with provided arguments
