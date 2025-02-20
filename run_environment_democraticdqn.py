@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import argparse
 
-from agents.dwn.DWL_4ly import DWL
+from agents.democratic.democratic_dqn_4ly import DemocraticDQN
 
 
 parser = argparse.ArgumentParser()
@@ -41,8 +41,18 @@ env = RecordVideo(env, "videos/demo", episode_trigger=lambda e: e % interval == 
 # Setup agent
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-agent = DWL(
-    env.observation_space.shape, n_action, n_policy, device=device, batch_size=1048, learning_rate=0.001, gamma=0.99, hidlyr_nodes=258, tau=0.001
+agent = DemocraticDQN(
+    env.observation_space.shape,
+    n_action,
+    n_policy,
+    device=device,
+    batch_size=1048,
+    learning_rate=0.001,
+    gamma=0.99,
+    alpha=1.0,
+    hidlyr_nodes=258,
+    human_preference=[0.5, 0.5],
+    tau=0.001,
 )
 
 if args.path_to_load_model is not None and len(args.path_to_load_model) > 0:

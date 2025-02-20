@@ -5,22 +5,11 @@ from collections import namedtuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import (
-    Linear,
-    ReLU,
-    CrossEntropyLoss,
-    Sequential,
-    Conv2d,
-    MaxPool2d,
-    Module,
-    Softmax,
-    BatchNorm2d,
-    Dropout,
-)
+from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool2d, Module, Softmax, BatchNorm2d, Dropout
 
 from .dwn_agent_4ly import DWA
 
-from .ReplayBuffer import ReplayBuffer
+from ..ReplayBuffer import ReplayBuffer
 
 
 class DWL(object):
@@ -126,13 +115,7 @@ class DWL(object):
     # Get loss values for Q and W
     #
     def get_loss_values(self):
-        (
-            q_loss,
-            w_loss,
-        ) = (
-            [],
-            [],
-        )
+        (q_loss, w_loss) = ([], [])
         for i in range(self.num_policies):
             q_loss_part, w_loss_part = self.agents[i].collect_loss_info()
             q_loss.append(q_loss_part), w_loss.append(w_loss_part)
@@ -146,9 +129,7 @@ class DWL(object):
         for i in range(self.num_policies):
             print("training pol :", i)
             self.agents[i].train()
-            if (
-                self.init_learn_steps_count == self.init_learn_steps_num
-            ):  # we start training W-network with delay
+            if self.init_learn_steps_count == self.init_learn_steps_num:  # we start training W-network with delay
                 self.agents[i].learn_w()
         self.init_learn_steps_count += 1
 

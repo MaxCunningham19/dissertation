@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool2d, Module, Softmax, BatchNorm2d, Dropout
 
-from .ReplayBuffer import ReplayBuffer
+from ..ReplayBuffer import ReplayBuffer
 
 Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"))
 
@@ -17,13 +17,13 @@ class QN(nn.Module):
     Basic Model of a Q network
     """
 
-    def __init__(self, state_number, hidlyr_nodes, action_number):
+    def __init__(self, state_number, hidlyr_nodes, num_policies):
         super(QN, self).__init__()
-        self.fc1 = nn.Linear(state_number, hidlyr_nodes)  # first conected layer
+        self.fc1 = nn.Linear(state_number + num_policies, hidlyr_nodes)  # first conected layer
         self.fc2 = nn.Linear(hidlyr_nodes, hidlyr_nodes * 2)  # second conected layer
         self.fc3 = nn.Linear(hidlyr_nodes * 2, hidlyr_nodes * 4)  # third conected layer
         self.fc4 = nn.Linear(hidlyr_nodes * 4, hidlyr_nodes * 8)  # fourth conected layer
-        self.out = nn.Linear(hidlyr_nodes * 8, action_number)  # output layer
+        self.out = nn.Linear(hidlyr_nodes * 8, num_policies)  # output layer
 
     def forward(self, state):
         x = F.relu(self.fc1(state))  # relu activation of fc1
@@ -34,21 +34,17 @@ class QN(nn.Module):
         return x
 
 
-class DQN(object):
+class PreferenceNetwork(object):
     def __init__(
         self,
         input_shape,
+        num_policies,
         num_actions,
-        net_sync_rate=1024,
         batch_size=1024,
-        epsilon=0.25,
-        epsilon_decay=0.9999,
-        epsilon_min=0.1,
         tau=0.001,
         memory_size=10000,
         learning_rate=0.01,
         gamma=0.9,
-        per_epsilon=0.001,
         beta_start=0.4,
         beta_inc=1.002,
         seed=404,
@@ -57,6 +53,7 @@ class DQN(object):
     ):
 
         self.input_shape = input_shape
+        self.num_policies = num_policies
         self.num_actions = num_actions
         self.num_states = self.input_shape[0]
 
@@ -66,9 +63,7 @@ class DQN(object):
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.gamma = gamma
-        self.epsilon = epsilon
-        self.epsilon_decay = epsilon_decay
-        self.epsilon_min = epsilon_min
+
         self.tau = tau
         self.memory_size = memory_size
 
@@ -77,12 +72,10 @@ class DQN(object):
 
         self.replayMemory = ReplayBuffer(self.num_actions, self.memory_size, self.batch_size, self.random_seed)
 
-        self.per_epsilon = per_epsilon
-
         self.q_episode_loss = []
 
-        self.policy_net = QN(self.num_states, hidlyr_nodes, self.num_actions)
-        self.target_net = QN(self.num_states, hidlyr_nodes, self.num_actions)
+        self.policy_net = QN(self.num_states, hidlyr_nodes, self.num_policies)
+        self.target_net = QN(self.num_states, hidlyr_nodes, self.num_policies)
         self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=learning_rate)
 
         if device is not None:
@@ -90,42 +83,34 @@ class DQN(object):
             self.policy_net.to(device)
             self.target_net.to(device)
 
-    def get_action(self, x):
-        if type(x).__name__ == "ndarray":
-            state = torch.from_numpy(x).float().unsqueeze(0).to(self.device)
+    def get_weights(self, state, preferences):
+        """Return the objective weights that will acheive the desired preferences"""
+        if type(state).__name__ == "ndarray":
+            input_values = torch.from_numpy(np.append(state, preferences)).float().unsqueeze(0).to(self.device)
         else:
-            state = x
+            input_values = torch.cat((state, preferences), dim=0)
         a = self.policy_net.eval()
         with torch.no_grad():
-            action_values = self.policy_net(state)
+            weights = self.policy_net(input_values)
 
-        if random.random() > self.epsilon:
-            return np.argmax(action_values.cpu().data.numpy())
-        else:
-            return random.choice(np.arange(self.num_actions))
+        return weights
 
-    def get_actions(self, x):
-        if type(x).__name__ == "ndarray":
-            state = torch.from_numpy(x).float().unsqueeze(0).to(self.device)
-        else:
-            state = x
-        a = self.policy_net.eval()
-        with torch.no_grad():
-            action_values = self.policy_net(state)
-
-        return action_values
-
-    def store_memory(self, state, action, reward, next_state, done):
-        self.replayMemory.add(state, action, reward, next_state, done)
+    def store_memory(self, state, action, rewards, next_state, done):
+        """Store memory"""
+        self.replayMemory.add(state, action, rewards, next_state, done)
 
     def train(self):
         if len(self.replayMemory) > self.batch_size:
-            (states, actions, rewards, next_states, probabilities, experiences_idx, dones) = self.replayMemory.sample()
+            (states, actions, rewardss, next_states, probabilities, experiences_idx, dones) = self.replayMemory.sample()
+
+            preferences_samples = np.random.dirichlet(np.ones(self.num_policies), size=self.batch_size)
+            preferences_samples = torch.tensor(preferences_samples, dtype=torch.float32).to(self.device)
 
             current_qs = self.policy_net(states).gather(1, actions)
             next_actions = self.policy_net(next_states).detach().max(1)[1].unsqueeze(1)
             max_next_qs = self.target_net(next_states).detach().gather(1, next_actions)
-            target_qs = rewards + self.gamma * max_next_qs * (1 - dones)
+
+            target_qs = rewardss + self.gamma * max_next_qs * (1 - dones)
 
             is_weights = np.power(probabilities * len(self.replayMemory), -self.beta)
             is_weights = torch.from_numpy(is_weights / is_weights.max()).float().to(self.device)

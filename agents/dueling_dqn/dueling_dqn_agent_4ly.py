@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool2d, Module, Softmax, BatchNorm2d, Dropout
 
-from .ReplayBuffer import ReplayBuffer
+from ..ReplayBuffer import ReplayBuffer
 
 
 Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"))
@@ -33,25 +33,19 @@ class DuelingQN(nn.Module):
         self.advantage_fc = nn.Linear(hidlyr_nodes * 8, action_number)  # Output advantages for all actions
 
     def forward(self, state):
-        print("Input state:", torch.isnan(state).any())
         x = F.relu(self.fc1(state))
-        print("After fc1:", torch.isnan(x).any())
 
         x = F.relu(self.fc2(x))
-        print("After fc2:", torch.isnan(x).any())
 
         x = F.relu(self.fc3(x))
-        print("After fc3:", torch.isnan(x).any())
 
         x = F.relu(self.fc4(x))
-        print("After fc4:", torch.isnan(x).any())
 
         # Check value stream
         value = self.value_fc(x)
-        print("Value stream:", torch.isnan(value).any())
 
         advantage = self.advantage_fc(x)
-        print("Advantage stream:", torch.isnan(advantage).any())
+        print("Value stream:", torch.isnan(value).any(), "Advantage stream:", torch.isnan(advantage).any())
 
         # Combine value and advantage streams to compute Q-values
         q_values = value + (advantage - torch.mean(advantage, dim=1, keepdim=True))
@@ -152,25 +146,34 @@ class DUELING_DQN(object):
     def train(self):
         if len(self.replayMemory) > self.batch_size:
             (states, actions, rewards, next_states, probabilities, experiences_idx, dones) = self.replayMemory.sample()
-            print("states:", states, torch.isnan(states), torch.isnan(states).any())
-            print("actions:", actions, torch.isnan(states), torch.isnan(states).any())
-            print("rewards:", rewards, torch.isnan(states), torch.isnan(states).any())
-            print("next_states:", next_states, torch.isnan(states), torch.isnan(states).any())
-            print("probabilities:", probabilities, np.isnan(np.array(probabilities)).any())
-            print("experiences_idx:", experiences_idx, np.isnan(np.array(experiences_idx)).any())
-            print("dones:", dones, torch.isnan(dones).any())
+            print(
+                "states:",
+                torch.isnan(states).any(),
+                "actions:",
+                torch.isnan(states).any(),
+                "rewards:",
+                torch.isnan(states).any(),
+                "next_states:",
+                torch.isnan(states).any(),
+                "probabilities:",
+                np.isnan(np.array(probabilities)).any(),
+                "experiences_idx:",
+                np.isnan(np.array(experiences_idx)).any(),
+                "dones:",
+                torch.isnan(dones).any(),
+            )
             c_qs, c_v, c_a = self.policy_net(states)
-            print("c_q", torch.isnan(c_qs).any())
-            print("c_v", torch.isnan(c_v).any())
-            print("c_a", torch.isnan(c_a).any())
+            print("c_q", torch.isnan(c_qs).any(), "c_v", torch.isnan(c_v).any(), "c_a", torch.isnan(c_a).any())
             current_qs = self.policy_net(states)[0].gather(1, actions)
             next_actions = self.policy_net(next_states)[0].detach().max(1)[1].unsqueeze(1)
             max_next_qs = self.target_net(next_states)[0].detach().gather(1, next_actions)
             target_qs = rewards + self.gamma * max_next_qs * (1 - dones)
 
             is_weights = np.power(probabilities * len(self.replayMemory), -self.beta)
+            print("is_weights:", np.isnan(is_weights).any())
             is_weights = torch.from_numpy(is_weights / is_weights.max()).float().to(self.device)
             loss = (target_qs - current_qs).pow(2) * is_weights
+            print("loss:", loss, torch.isnan(loss).any())
             loss = loss.mean()
 
             self.q_episode_loss.append(loss.detach().cpu().numpy())
@@ -178,13 +181,10 @@ class DUELING_DQN(object):
             td_errors = (target_qs - current_qs).detach().cpu().numpy()
             print(
                 "dqn, target_qs",
-                target_qs,
                 torch.isnan(target_qs).any(),
                 "\ndqn, currentqs",
-                current_qs,
                 torch.isnan(current_qs).any(),
                 "\ndqn, tderror",
-                td_errors,
                 np.isnan(np.array(td_errors)).any(),
             )
             self.replayMemory.update_priorities(experiences_idx, td_errors, self.per_epsilon)

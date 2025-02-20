@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool2d, Module, Softmax, BatchNorm2d, Dropout
 
-from .ReplayBuffer import ReplayBuffer
+from ..ReplayBuffer import ReplayBuffer
 
 Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"))
 
@@ -82,7 +82,9 @@ class DWA(object):
         self.beta = beta_start
         self.beta_inc = beta_inc
 
-        self.replayMemory = ReplayBuffer(action_size=self.num_actions, buffer_size=self.memory_size, batch_size=self.batch_size, seed=self.random_seed)
+        self.replayMemory = ReplayBuffer(
+            action_size=self.num_actions, buffer_size=self.memory_size, batch_size=self.batch_size, seed=self.random_seed
+        )
 
         self.per_epsilon = per_epsilon
 
@@ -104,7 +106,9 @@ class DWA(object):
             self.wnetwork_target = QN(self.num_states, hidlyr_nodes, 1).to(device)
             self.optimizer_w = torch.optim.Adam(self.wnetwork_local.parameters(), lr=self.learning_rate)
             # Init the W net learning parameters and replay buffer
-            self.memory_w = ReplayBuffer(action_size=self.num_actions, buffer_size=self.memory_size, batch_size=self.batch_size, seed=self.random_seed)
+            self.memory_w = ReplayBuffer(
+                action_size=self.num_actions, buffer_size=self.memory_size, batch_size=self.batch_size, seed=self.random_seed
+            )
             self.w_alpha = walpha
             self.w_episode_loss = []
             self.w_tau = w_tau

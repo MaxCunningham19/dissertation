@@ -1,5 +1,7 @@
 import gym
 from gym.wrappers.record_video import RecordVideo
+import mo_gymnasium as mo_gym
+from mo_gymnasium.envs.deep_sea_treasure.deep_sea_treasure import CONCAVE_MAP
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -7,8 +9,9 @@ import pandas as pd
 import argparse
 
 
-from agents.dueling_dqn_agent_4ly import DUELING_DQN
-from agents.dueling_dwn_4ly import DWL
+from agents.dueling_dqn.dueling_dqn_agent_4ly import DUELING_DQN
+from agents.dueling_dqn.dueling_dwn_4ly import DWL
+import moviepy
 import test_env
 
 parser = argparse.ArgumentParser()
@@ -29,15 +32,32 @@ num_episodes_to_record = args.num_episodes_to_record
 interval = num_episodes // num_episodes_to_record
 if interval == 0:
     interval = 1
-env = gym.make("simplemoenv", render_mode="rgb_array", max_steps=args.max_steps)
-env = RecordVideo(env, "videos/demo", episode_trigger=lambda e: e % interval == 0, name_prefix="video-cartpole")
 
-# Setup agent
+environment_name = "deep-sea-treasure-v0"
+reward_space_info = ["treasure", "time_penalty"]
+env = mo_gym.make("deep-sea-treasure-v0", render_mode="rgb_array", dst_map=CONCAVE_MAP)
 n_state = env.observation_space.shape[0]
 n_action = env.action_space.n
-n_policy = env.reward_space.shape[0]
+n_policy = 2
+
+env = RecordVideo(env, "videos/demo", episode_trigger=lambda e: e % interval == 0, name_prefix=environment_name)
+# Setup agent
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-agent = DWL(env.observation_space.shape, n_action, n_policy, device=device, batch_size=64, learning_rate=0.1)
+agent = DWL(
+    env.observation_space.shape,
+    n_action,
+    n_policy,
+    device=device,
+    batch_size=1048,
+    learning_rate=0.1,
+    gamma=0.9,
+    epsilon=0.99,
+    epsilon_decay=0.9,
+    hidlyr_nodes=258,
+    human_preference=[0.9, 0.1],
+    tau=0.001,
+)
 
 if args.path_to_load_model is not None and len(args.path_to_load_model) > 0:
     agent.load(args.path_to_load_model)
@@ -54,47 +74,56 @@ for i in range(num_episodes + 1):
     while not (done or truncated):
         action = agent.get_action(obs, False)
         obs_, reward, done, truncated, info = env.step(action)
-        if i == num_episodes:
-            print(obs, action, reward, obs_)
+
         agent.store_memory(obs, action, reward, obs_, done)
+        # print(i, obs, action, reward, obs_, done)
         episode_reward = episode_reward + np.array(reward)
         obs = obs_
-        agent.train()
 
     episode_rewards.append(episode_reward)
     loss_info = agent.get_loss_values()
     loss.append(loss_info)
     csv_data.append([i, episode_reward, loss_info])
+    agent.train()
 
 # print(episode_rewards)
 agent.save(args.path_to_save_model)
 
-labels = ["noop", "up", "down", "left", "right", "up-left", "up-right", "down-left", "down-right"]
-x = np.arange(len(labels))
+xs = np.arange(n_action)
 bar_width = 0.2
-fig, axes = plt.subplots(2, 2)
-for i in range(2):
-    for j in range(2):
-        ax = axes[i, j]
-        idx = np.array([i, j])
-        agent_info = agent.get_agent_info(idx)
-        _, value1, advantages1 = agent_info[0]
-        _, value2, advantages2 = agent_info[1]
-        advantages1 = advantages1.tolist()[0]
-        advantages2 = advantages2.tolist()[0]
-        value1 = value1.tolist()[0]
-        value2 = value2.tolist()[0]
-        array1 = advantages1 - np.mean(advantages1)
-        array2 = advantages2 - np.mean(advantages2)
-        # Plot bars in the current subplot
-        ax.bar(x - bar_width / 2, array1, width=bar_width, label="Agent width", color="blue", alpha=0.7)
-        ax.bar(x + bar_width / 2, array2, width=bar_width, label="Agent height", color="green", alpha=0.7)
 
-        # Formatting
-        ax.set_xticks(x)
-        ax.set_xticklabels(labels, rotation=30)
-        ax.set_title(f"Subplot ({i}, {j})")
-        ax.set_ylabel("Value")
+
+obs_space = env.observation_space  # Get the Box space
+
+low = obs_space.low.astype(np.int32)  # Convert to integer bounds
+high = obs_space.high.astype(np.int32)  # Convert to integer bounds
+
+rows = high[1] - low[1] + 1  # Height of grid (Y dimension)
+cols = high[0] - low[0] + 1  # Width of grid (X dimension)
+fig, axes = plt.subplots(len(CONCAVE_MAP), len(CONCAVE_MAP[0]))
+CONCAVE_MAP
+print(CONCAVE_MAP)
+# Iterate through all integer states
+for x, row in enumerate(CONCAVE_MAP):  # +1 to include the upper bound
+    for y, value in enumerate(row):
+        print(x, y, value)
+        ax = axes[x, y]
+        ax.set_xticks([])  # Remove x-axis ticks
+        ax.set_yticks([])  # Remove y-axis ticks
+        if value >= 0.0 or value >= 0:
+            idx = np.array([x, y])
+            agent_info = agent.get_agent_info(idx)
+            _, value1, advantages1 = agent_info[0]
+            _, value2, advantages2 = agent_info[1]
+            advantages1 = advantages1.tolist()[0]
+            advantages2 = advantages2.tolist()[0]
+            value1 = value1.tolist()[0]
+            value2 = value2.tolist()[0]
+            array1 = advantages1 - np.mean(advantages1)
+            array2 = advantages2 - np.mean(advantages2)
+            # Plot bars in the current subplot
+            ax.bar(xs - bar_width / 2, advantages1, width=bar_width, label="treasure", color="blue", alpha=0.7)
+            ax.bar(xs + bar_width / 2, advantages2, width=bar_width, label="speed", color="green", alpha=0.7)
 
 plt.legend()
 plt.show()
@@ -111,12 +140,21 @@ if args.plot:
 
     episode_rewards = np.array(episode_rewards).T
 
+    window_size = 50
+
+    def moving_average(data, window_size):
+        return np.convolve(data, np.ones(window_size) / window_size, mode="valid")
+
     fig, axes = plt.subplots(n_policy, 1)
     for i, col in enumerate(episode_rewards):
-        axes[i].plot(col)
+        smoothed_rewards = moving_average(col, window_size)
+        x_values = np.arange(len(smoothed_rewards)) + window_size // 2
+        # axes[i].plot(col, label="Raw Rewards", alpha=0.3, color="blue")
+        axes[i].plot(x_values, smoothed_rewards, label="Moving Avg (50 eps)", color="red")
         axes[i].set_xlabel("episodes")
         axes[i].set_ylabel(f"reward")
-        axes[i].set_title(f"{env.reward_space_info[i]}")
+        axes[i].set_title(f"{reward_space_info[i]}")
+        # axes[i].legend()
 
     plt.tight_layout()
     plt.show()
