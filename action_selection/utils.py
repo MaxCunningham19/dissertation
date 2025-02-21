@@ -20,9 +20,33 @@ def create_exploration_strategy(strategy_name: str, *args, **kwargs) -> Explorat
     if strategy_name not in strategies:
         raise ValueError(f"Unknown exploration strategy: {strategy_name}")
 
-    if strategy_name == "pheromones":
-        state_map_dict = {"tuple": lambda x: tuple(x)}
-
-        kwargs["state_map"] = state_map_dict[kwargs["state_map"]]
+    if "state_map" in kwargs:
+        kwargs["state_map"] = StateMapGenerator.get_function(kwargs["state_map"])
 
     return strategies[strategy_name](*args, **kwargs)  # initialize with provided arguments
+
+
+class StateMapGenerator:
+    """This class converts a string input into the desired state mapping function"""
+
+    @classmethod
+    def get_function(cls, function_string: str):
+        """Returns the function corresponding to the passed string if it exists"""
+        function_string = function_string.lower()
+        if hasattr(cls, function_string):
+            func = getattr(cls, function_string)
+            if callable(func):
+                return func
+
+        # Get a list of all callable methods excluding 'get_function'
+        available_functions = [name for name in dir(cls) if callable(getattr(cls, name)) and not name.startswith("__") and name != "get_function"]
+        available_functions = "\n  - " + ("\n  -".join(available_functions))
+        raise ValueError(f"Unsuppored state_map value: {function_string}. Availaible functions: {available_functions}")
+
+    @staticmethod
+    def tuple_map(state):
+        return tuple(state)
+
+    @staticmethod
+    def do_nothing(state):
+        return state
