@@ -14,16 +14,15 @@ from agents.dwn.DWL_4ly import DWL
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--num_episodes", type=int, default=1000, help="number of episodes")
-parser.add_argument("--max_steps", type=int, default=25, help="maximum number of steps per episode")
 parser.add_argument("--plot", action="store_true", default=False, help="Enable plotting the metrics calculated")
 parser.add_argument("--record", action="store_true", default=False, help="Enable recording of episodes")
 parser.add_argument("--num_record", type=int, default=25, help="number of episodes to record")
 
 parser.add_argument("--path_to_load_model", type=str, help="path to load a network from")
-parser.add_argument("--path_to_save_model", type=str, default="./agents/savedNets/demo/model", help="path to save the network to")
+parser.add_argument("--path_to_save_model", type=str, default="./agents/savedNets/", help="path to save the network to")
 parser.add_argument("--path_to_csv_save", type=str, default="./output.csv", help="path to save the csv results to")
 
-parser.add_argument("--model", type=str, default="dwn", help="MORL model to use: dwn, democratic, dueling")
+parser.add_argument("--model", type=str, default="democratic", help="MORL model to use: dwn, democratic, dueling")
 parser.add_argument(
     "--model_kwargs", type=str, nargs="*", help="model specific parameters not provided below e.g. --model_kwargs arg1=value1 arg2=value2"
 )
@@ -55,12 +54,11 @@ n_policy = env.unwrapped.reward_space.shape[0]
 if args.record:
     env = RecordVideo(env, "videos/demo", episode_trigger=lambda e: e % interval == 0, name_prefix=args.env)
 
-
 # Setup agent
 agent_name = "".join(args.model.split(" ")).lower()
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-agent_dictionary = {"dwn": DWL, "democratic": DemocraticDQN}
+agent_dictionary = {"democratic": DemocraticDQN}
 
 if agent_name not in agent_dictionary:
     print("Invalid model selection")
@@ -96,7 +94,7 @@ for i in range(num_episodes + 1):  # + 1 too ensure the final episode is saved
     csv_data.append([i, episode_reward, loss_info])
     agent.train()
 
-agent.save(args.path_to_save_model)
+agent.save(f"{args.path_to_save_model}/{args.model}")
 
 headers = ["episode", "episode_reward", "loss"]
 df = pd.DataFrame(csv_data, columns=headers)
