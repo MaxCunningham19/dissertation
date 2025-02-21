@@ -5,6 +5,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool2d, Module, Softmax, BatchNorm2d, Dropout
 
+from action_selection import ExplorationStrategy
+
 from ..dqn_agent_4ly import DQN
 
 
@@ -15,6 +17,7 @@ class DemocraticDQN(object):
         input_shape,
         num_actions,
         num_policies,
+        exploration_strategy: ExplorationStrategy,
         batch_size=1024,
         memory_size=10000,
         learning_rate=0.01,
@@ -27,50 +30,34 @@ class DemocraticDQN(object):
         seed=404,
         device=None,
         human_preference=None,
-        alpha=1.0,
-        beta=1.5,
-        evaporation_factor=0.9,
-        pheromone_inc=0.8,
     ):
 
         self.input_shape = input_shape
         self.num_actions = num_actions
         self.num_policies = num_policies
         self.num_states = self.input_shape[0]
-        self.device = device
+        self.exploration_strategy = exploration_strategy
         self.human_preference = human_preference
         if self.human_preference is None or len(human_preference) != self.num_policies:
             self.human_preference = [1.0 / self.num_policies] * self.num_policies
 
-        # Learning parameters for DQN agents
-        self.batch_size = batch_size
-        self.learning_rate = learning_rate
-        self.gamma = gamma
-        self.memory_size = memory_size
-        self.tau = tau
-        self.per_epsilon = per_epsilon
-        self.alpha = alpha
-        self.beta = beta
-        self.evaporation_factor = evaporation_factor
-        self.pheromone_inc = pheromone_inc
-        self.pheromones = {}
-
         # Construct Agents for each policy
         self.agents: list[DQN] = []
-
         for i in range(self.num_policies):
             self.agents.append(
                 DQN(
                     input_shape=self.input_shape,
                     num_actions=self.num_actions,
-                    batch_size=self.batch_size,
-                    tau=self.tau,
-                    memory_size=self.memory_size,
-                    learning_rate=self.learning_rate,
-                    gamma=self.gamma,
-                    per_epsilon=self.per_epsilon,
+                    batch_size=batch_size,
+                    tau=tau,
+                    memory_size=memory_size,
+                    learning_rate=learning_rate,
+                    gamma=gamma,
+                    per_epsilon=per_epsilon,
+                    beta_start=beta_start,
+                    beta_inc=beta_inc,
                     seed=seed,
-                    device=self.device,
+                    device=device,
                     hidlyr_nodes=hidlyr_nodes,
                 )
             )
@@ -104,25 +91,9 @@ class DemocraticDQN(object):
             print(f"Final: {action_advantages}")
 
         if training:
-            return self.select_action(x, action_advantages)
+            return self.exploration_strategy.get_action(action_advantages, x)
         else:
             return np.argmax(action_advantages)
-
-    def select_action(self, state, q_values):
-        "returns the selected action based on current exploration strategy"
-        state = tuple(state)
-        if not state in self.pheromones:
-            action = np.argmax(q_values)
-            self.pheromones[state] = np.array([1.0] * self.num_actions)
-
-        else:
-            pheromones_state = np.array(self.pheromones[state])
-            probabilities = self.softmax(((q_values) ** self.alpha) / ((pheromones_state) ** self.beta))
-            action = np.random.choice(self.num_actions, p=probabilities)
-
-        self.pheromones[state][action] = self.pheromones[state][action] + self.pheromone_inc
-
-        return action
 
     def get_action(self, x, printv=False, training=True):
         """return an action"""
@@ -152,7 +123,6 @@ class DemocraticDQN(object):
     def store_transition(self, s, a, rewards, s_, d):
         """Store experience to all agents"""
         for i in range(self.num_policies):
-            # print("storing for agent ", i, "-> (", s, a, rewards[i], s_, d, ")")
             self.agents[i].store_memory(s, a, rewards[i], s_, d)
 
     def store_memory(self, s, a, rewards, s_, d):
@@ -175,12 +145,7 @@ class DemocraticDQN(object):
 
     def update_params(self):
         """Update exploration rate"""
-        for state in self.pheromones:
-            pheromones = self.pheromones[state]
-            # print(state, ":", pheromones)
-            for i in range(len(pheromones)):
-                pheromones[i] = max(1.0, pheromones[i] * self.evaporation_factor)
-            self.pheromones[state] = pheromones
+        self.exploration_strategy.update_parameters()
 
     def save(self, path):
         """Save all Q-networks"""

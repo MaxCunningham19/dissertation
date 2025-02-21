@@ -2,6 +2,7 @@ from typing import Callable, Any, Hashable
 import numpy as np
 
 from .ExplorationStrategy import ExplorationStrategy
+from utils import softmax
 
 MIN_PHEROMONE = 1.0
 NON_ZERO = 1e-6
@@ -30,11 +31,11 @@ class Pheromones(ExplorationStrategy):
 
         if not state in self.pheromones:  # add state to pheromone map
             action = np.argmax(actions)
-            self.pheromones[state] = np.array([self.pheromone_min] * self.num_actions)
+            self.pheromones[state] = np.array([self.pheromone_min] * len(actions))
         else:
             pheromones_state = np.array(self.pheromones[state])
-            probabilities = self.softmax(((actions) ** self.alpha) / ((pheromones_state) ** self.beta))
-            action = np.random.choice(self.num_actions, p=probabilities)
+            probabilities = softmax(((actions) ** self.alpha) / ((pheromones_state) ** self.beta))
+            action = np.random.choice(len(actions), p=probabilities)
 
         self.pheromones[state][action] = self.pheromones[state][action] + self.pheromone_inc
 

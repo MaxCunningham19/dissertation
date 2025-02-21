@@ -8,7 +8,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import argparse
 
-from utils import extract_kwargs
+from action_selection import EpsilonGreedy
+from action_selection.utils import create_exploration_strategy
+from utils import extract_kwargs, softmax
 from agents.democratic.democratic_dqn_4ly import DemocraticDQN
 from agents.dwn.DWL_4ly import DWL
 
@@ -25,6 +27,14 @@ parser.add_argument("--path_to_csv_save", type=str, default="./output.csv", help
 parser.add_argument("--model", type=str, default="democratic", help="MORL model to use: dwn, democratic, dueling")
 parser.add_argument(
     "--model_kwargs", type=str, nargs="*", help="model specific parameters not provided below e.g. --model_kwargs arg1=value1 arg2=value2"
+)
+
+parser.add_argument("--exploration", type=str, default="epsilon", help="exploration strategy for deciding which action to take")
+parser.add_argument(
+    "--exploration_kwargs",
+    type=str,
+    nargs="*",
+    help="exploration strategy specific parameters not provided below e.g. --exploration_kwargs arg1=value1 arg2=value2",
 )
 
 parser.add_argument("--env", type=str, default="deep-sea-treasure-v0", help="the mo-gymnasium environment to train the agent on")
@@ -64,7 +74,11 @@ if agent_name not in agent_dictionary:
     print("Invalid model selection")
     exit(1)
 
-agent = agent_dictionary[agent_name](env.observation_space.shape, n_action, n_policy, device=device, **extract_kwargs(args.model_kwargs))
+exploration_strategy = create_exploration_strategy(args.exploration, **extract_kwargs(args.exploration_kwargs))
+
+agent = agent_dictionary[agent_name](
+    env.observation_space.shape, n_action, n_policy, exploration_strategy, device=device, **extract_kwargs(args.model_kwargs)
+)
 
 if args.path_to_load_model is not None and len(args.path_to_load_model) > 0:
     agent.load(args.path_to_load_model)
@@ -92,6 +106,9 @@ for i in range(num_episodes + 1):  # + 1 too ensure the final episode is saved
     loss_info = agent.get_loss_values()
     loss.append(loss_info)
     csv_data.append([i, episode_reward, loss_info])
+
+    if i % 10 == 0:
+        print("Epsiode", i, episode_reward, loss_info)
     agent.train()
 
 agent.save(f"{args.path_to_save_model}/{args.model}")
@@ -127,27 +144,18 @@ if args.plot:
     xs = np.arange(n_action)
     bar_width = 0.2
 
-    def softmax(x):
-        if isinstance(x, torch.Tensor):
-            if x.is_cuda:
-                x = x.cpu()
-            x = x.numpy()
-
-        e_x = np.exp(x - np.max(x))
-        return e_x / e_x.sum()
-
     obs_space = env.observation_space
 
     low = obs_space.low.astype(np.int32)
     high = obs_space.high.astype(np.int32)
 
-    rows = high[1] - low[1] + 1
-    cols = high[0] - low[0] + 1
+    rows = high[1] - low[1]
+    cols = high[0] - low[0]
     fig, axes = plt.subplots(len(CONCAVE_MAP), len(CONCAVE_MAP[0]))
     CONCAVE_MAP
     print(CONCAVE_MAP)
-    for x in rows:
-        for y in cols:
+    for x in range(rows):
+        for y in range(cols):
             ax = axes[x, y]
             ax.set_xticks([])
             ax.set_yticks([])

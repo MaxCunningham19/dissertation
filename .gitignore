@@ -1,5 +1,5 @@
 venv
 videos/demo
-agents/savedNets/demo
+agents/savedNets/
 .vscode/
 __pycache__

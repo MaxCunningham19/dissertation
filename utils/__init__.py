@@ -1,1 +1,1 @@
-from .utils import extract_kwargs
+from .utils import extract_kwargs, softmax
