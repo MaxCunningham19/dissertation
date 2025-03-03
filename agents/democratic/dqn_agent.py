@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool2d, Module, Softmax, BatchNorm2d, Dropout
-
+from exploration_strategy import ExplorationStrategy
 from ..ReplayBuffer import ReplayBuffer
 
 
@@ -46,6 +46,7 @@ class DQN(object):
         beta_start=0.4,
         beta_inc=1.002,
         seed=404,
+        exploration_strategy: ExplorationStrategy | None = None,
         device=None,
         hidlyr_nodes=128,
     ):
@@ -92,6 +93,21 @@ class DQN(object):
             action_values = self.policy_net(state)
 
         return action_values
+
+    def get_action(self, x, training=True):
+        """Nominate an action"""
+        action_advantages = np.array([0.0] * self.num_actions)
+
+        for i, agent in enumerate(self.agents):
+            q_values = agent.get_actions(x)
+            scaled_q_values = self.softmax(q_values)
+            preference_weighted_scaled_q_values = scaled_q_values * self.human_preference[i]
+            action_advantages = action_advantages + preference_weighted_scaled_q_values
+
+        if training:
+            return self.exploration_strategy.get_action(action_advantages, x)
+        else:
+            return np.argmax(action_advantages)
 
     def store_memory(self, state, action, reward, next_state, done):
         """Store memory in the PERBuffer"""

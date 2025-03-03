@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool2d, Module, Softmax, BatchNorm2d, Dropout
 
-from action_selection import ExplorationStrategy
+from exploration_strategy import ExplorationStrategy
 
 from ..dqn_agent_4ly import DQN
 
