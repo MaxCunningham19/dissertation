@@ -7,7 +7,7 @@ from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool
 
 from exploration_strategy import ExplorationStrategy
 
-from ..dqn_agent_4ly import DQN
+from .dqn_agent import DQN
 
 
 class DemocraticDQN(object):
@@ -75,7 +75,7 @@ class DemocraticDQN(object):
         e_x = np.exp(x - np.max(x))
         return e_x / e_x.sum()
 
-    def get_action_nomination(self, x, printv=False, training=True):
+    def get_action(self, x):
         """Nominate an action"""
         action_advantages = np.array([0.0] * self.num_actions)
 
@@ -84,22 +84,11 @@ class DemocraticDQN(object):
             scaled_q_values = self.softmax(q_values)
             preference_weighted_scaled_q_values = scaled_q_values * self.human_preference[i]
             action_advantages = action_advantages + preference_weighted_scaled_q_values
-            if printv:
-                print(i, q_values, scaled_q_values, self.human_preference[i], preference_weighted_scaled_q_values)
 
-        if printv:
-            print(f"Final: {action_advantages}")
-
-        if training:
-            return self.exploration_strategy.get_action(action_advantages, x)
-        else:
-            return np.argmax(action_advantages)
-
-    def get_action(self, x, printv=False, training=True):
-        """return an action"""
-        return self.get_action_nomination(x, printv=printv, training=training)
+        return self.exploration_strategy.get_action(action_advantages, x)
 
     def get_actions(self, x):
+        """Get every action from every agent"""
         action_advantages = np.array([0.0] * self.num_actions)
 
         for i, agent in enumerate(self.agents):

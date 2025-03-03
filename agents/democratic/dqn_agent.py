@@ -1,11 +1,7 @@
-import random
-import math
 import numpy as np
-from collections import namedtuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool2d, Module, Softmax, BatchNorm2d, Dropout
 from exploration_strategy import ExplorationStrategy
 from ..ReplayBuffer import ReplayBuffer
 
@@ -54,7 +50,7 @@ class DQN(object):
         self.input_shape = input_shape
         self.num_actions = num_actions
         self.num_states = self.input_shape[0]
-
+        self.exploration_strategy = exploration_strategy
         self.random_seed = seed
 
         # Learning parameters
@@ -96,18 +92,16 @@ class DQN(object):
 
     def get_action(self, x, training=True):
         """Nominate an action"""
-        action_advantages = np.array([0.0] * self.num_actions)
-
-        for i, agent in enumerate(self.agents):
-            q_values = agent.get_actions(x)
-            scaled_q_values = self.softmax(q_values)
-            preference_weighted_scaled_q_values = scaled_q_values * self.human_preference[i]
-            action_advantages = action_advantages + preference_weighted_scaled_q_values
-
-        if training:
-            return self.exploration_strategy.get_action(action_advantages, x)
+        if type(x).__name__ == "ndarray":
+            state = torch.from_numpy(x).float().unsqueeze(0).to(self.device)
         else:
-            return np.argmax(action_advantages)
+            state = x
+        a = self.policy_net.eval()
+        action_values = self.get_actions(x)
+        if training:
+            return self.exploration_strategy.get_action(action_values, state)
+        else:
+            return np.argmax(action_values)
 
     def store_memory(self, state, action, reward, next_state, done):
         """Store memory in the PERBuffer"""
@@ -137,7 +131,6 @@ class DQN(object):
             self.optimizer.step()
 
             self.soft_update(self.policy_net, self.target_net, self.tau)
-            self.update_params()
 
     def soft_update(self, originNet, targetNet, tau):
         """Update the target network towards the online network"""
@@ -147,6 +140,7 @@ class DQN(object):
     def update_params(self):
         """Update model parameters"""
         self.beta = min(1.0, self.beta_inc * self.beta)
+        self.exploration_strategy.update_parameters()
 
     def save_net(self, path):
         """Save the online network"""

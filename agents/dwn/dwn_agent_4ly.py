@@ -7,6 +7,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool2d, Module, Softmax, BatchNorm2d, Dropout
 
+from exploration_strategy import ExplorationStrategy
+
 from ..ReplayBuffer import ReplayBuffer
 
 Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"))
@@ -35,15 +37,12 @@ class QN(nn.Module):
 
 
 class DWA(object):
+
     def __init__(
         self,
         input_shape,
         num_actions,
-        net_sync_rate=1024,
         batch_size=1024,
-        epsilon=0.25,
-        epsilon_decay=0.9999,
-        epsilon_min=0.1,
         tau=0.001,
         memory_size=10000,
         learning_rate=0.01,
@@ -52,12 +51,10 @@ class DWA(object):
         beta_start=0.4,
         beta_inc=1.002,
         seed=404,
+        exploration_strategy: ExplorationStrategy | None = None,
         device=None,
         hidlyr_nodes=128,
         w_learning=True,
-        wepsilon=0.99,
-        wepsilon_decay=0.9995,
-        wepsilon_min=0.1,
         w_tau=0.001,
         walpha=0.001,
     ):
@@ -65,16 +62,13 @@ class DWA(object):
         self.input_shape = input_shape
         self.num_actions = num_actions
         self.num_states = self.input_shape[0]
-
+        self.exploration_strategy = exploration_strategy
         self.random_seed = seed
 
         # Learning parameters
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.gamma = gamma
-        self.epsilon = epsilon
-        self.epsilon_decay = epsilon_decay
-        self.epsilon_min = epsilon_min
         self.tau = tau
         self.memory_size = memory_size
 
@@ -95,9 +89,6 @@ class DWA(object):
 
         # Learning parameters for W learning net
         self.w_learning = w_learning
-        self.wepsilon = wepsilon
-        self.wepsilon_decay = wepsilon_decay
-        self.wepsilon_min = wepsilon_min
 
         self.w_learning = w_learning
         if self.w_learning:  # We only init the W-values if we need them, i.e., w_learning = True
@@ -111,7 +102,6 @@ class DWA(object):
             self.w_alpha = walpha
             self.w_episode_loss = []
             self.w_tau = w_tau
-            self.wepsilon = wepsilon
 
         if device is not None:
             self.device = device
@@ -119,6 +109,7 @@ class DWA(object):
             self.target_net.to(device)
 
     def get_action(self, x):
+        """Get the action for the given state"""
         if type(x).__name__ == "ndarray":
             state = torch.from_numpy(x).float().unsqueeze(0).to(self.device)
         else:
@@ -127,12 +118,10 @@ class DWA(object):
         with torch.no_grad():
             action_values = self.policy_net(state)
 
-        if random.random() > self.epsilon:
-            return np.argmax(action_values.cpu().data.numpy())
-        else:
-            return random.choice(np.arange(self.num_actions))
+        return self.exploration_strategy.get_action(action_values, state)
 
     def get_w_value(self, x):
+        """Get the W-value for the given state"""
         if type(x).__name__ == "ndarray":
             state = torch.from_numpy(x).float().unsqueeze(0).to(self.device)
         else:
@@ -143,12 +132,15 @@ class DWA(object):
         return w_value
 
     def store_memory(self, state, action, reward, next_state, done):
+        """Store the experience to the replay buffer"""
         self.replayMemory.add(state, action, reward, next_state, done)
 
     def store_w_memory(self, s, a, r, s_, d):
+        """Store the experience to the W-learning replay buffer"""
         self.memory_w.add(s, a, r, s_, d)
 
     def train(self):
+        """Train the Q-network"""
         if len(self.replayMemory) > self.batch_size:
             (states, actions, rewards, next_states, probabilites, experiences_idx, dones) = self.replayMemory.sample()
             current_qs = self.policy_net(states).gather(1, actions)
@@ -173,8 +165,8 @@ class DWA(object):
             self.soft_update(self.policy_net, self.target_net, self.tau)
             self.update_params()
 
-    def learn_w(self):
-        # W target parameter update
+    def train_w(self):
+        """Train the W-network"""
         if len(self.memory_w) > self.batch_size:
             (states, actions, rewards, next_states, probabilites, experiences_idx, dones) = self.memory_w.sample()
 
@@ -205,38 +197,40 @@ class DWA(object):
             self.soft_update(self.wnetwork_local, self.wnetwork_target, self.w_tau)
 
     def soft_update(self, originNet, targetNet, tau):
+        """Update the target network towards the online network"""
         for target_param, local_param in zip(targetNet.parameters(), originNet.parameters()):
             target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
 
     def update_params(self):
-        self.epsilon = max(self.epsilon_min, self.epsilon_decay * self.epsilon)
+        """Update parameters"""
         self.beta = min(1.0, self.beta_inc * self.beta)
-        print("params updated")
+        self.exploration_strategy.update_parameters()
 
     def save_net(self, path):
+        """Save the Q-network"""
         torch.save(self.policy_net.state_dict(), path)
-        print("Net saved")
 
     def save_w_net(self, path):
+        """Save the W-network"""
         torch.save(self.wnetwork_local.state_dict(), path)
-        print("W Net saved")
 
     def load_net(self, path):
+        """Load the Q-network"""
         self.policy_net.load_state_dict(torch.load(path)), self.target_net.load_state_dict(torch.load(path))
         self.policy_net.eval(), self.target_net.eval()
 
     def load_w_net(self, path):
+        """Load the W-network"""
         if self.w_learning:
             self.wnetwork_local.load_state_dict(torch.load(path)), self.wnetwork_target.load_state_dict(torch.load(path))
             self.wnetwork_local.eval(), self.wnetwork_target.eval()
 
     def collect_loss_info(self):
-        # print("Q-episode loss:", self.q_episode_loss)
+        """Collect the loss information"""
         avg_q_loss = np.average(self.q_episode_loss)
         avg_w_loss = 0
         self.q_episode_loss = []
         if self.w_learning:
-            # print("W-episode loss:", self.w_episode_loss)
             avg_w_loss = np.average(self.w_episode_loss)
             self.w_episode_loss = []
         return avg_q_loss, avg_w_loss

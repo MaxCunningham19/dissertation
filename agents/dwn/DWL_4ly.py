@@ -1,18 +1,10 @@
-import random
-import math
-import numpy as np
-from collections import namedtuple
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool2d, Module, Softmax, BatchNorm2d, Dropout
-
+from exploration_strategy import ExplorationStrategy, Greedy
+from agents.AbstractAgent import AbstractAgent
 from .dwn_agent_4ly import DWA
-
-from ..ReplayBuffer import ReplayBuffer
 
 
 class DWL(object):
+
     def __init__(
         self,
         input_shape,
@@ -20,12 +12,8 @@ class DWL(object):
         num_policies,
         w_learning=True,
         batch_size=1024,
-        epsilon=0.25,
-        epsilon_decay=0.995,
-        epsilon_min=0.1,
-        wepsilon=0.99,
-        wepsilon_decay=0.9995,
-        wepsilon_min=0.1,
+        exploration_strategy: ExplorationStrategy = Greedy(),
+        dwn_exploration_strategy: ExplorationStrategy = Greedy(),
         memory_size=10000,
         learning_rate=0.01,
         gamma=0.9,
@@ -46,19 +34,15 @@ class DWL(object):
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.gamma = gamma
-        self.epsilon = epsilon
-        self.epsilon_decay = epsilon_decay
-        self.epsilon_min = epsilon_min
+        self.exploration_strategy = exploration_strategy
         self.memory_size = memory_size
 
         # Learning parameters for W learning net
         self.w_learning = w_learning
-        self.wepsilon = wepsilon
-        self.wepsilon_decay = wepsilon_decay
-        self.wepsilon_min = wepsilon_min
+        self.dwn_exploration_strategy = dwn_exploration_strategy
 
         # Construct Agents for each policy
-        self.agents = []
+        self.agents: list[DWA] = []
 
         for i in range(self.num_policies):
             self.agents.append(
@@ -66,22 +50,17 @@ class DWL(object):
                     input_shape=self.input_shape,
                     num_actions=self.num_actions,
                     batch_size=self.batch_size,
-                    epsilon=self.epsilon,
-                    epsilon_min=self.epsilon_min,
-                    epsilon_decay=self.epsilon_decay,
+                    exploration_strategy=self.dwn_exploration_strategy,
                     memory_size=self.memory_size,
                     learning_rate=self.learning_rate,
                     gamma=self.gamma,
                     device=self.device,
                     hidlyr_nodes=hidlyr_nodes,
                     w_learning=self.w_learning,
-                    wepsilon=self.wepsilon,
-                    wepsilon_decay=self.wepsilon_decay,
-                    wepsilon_min=self.wepsilon_min,
                 )
             )
 
-    def get_action_nomination(self, x):
+    def get_action(self, x):
         """Get the action nomination for the given state"""
         nominated_actions = []
         w_values = []
@@ -90,16 +69,11 @@ class DWL(object):
             w_values.append(agent.get_w_value(x))
 
         # Try different W-policies the same logic as exploration vs explotation
-        if np.random.uniform() > self.wepsilon:
-            policy_sel = np.argmax(w_values)
-        else:
-            policy_sel = np.random.randint(0, self.num_policies)
-            self.wepsilon = max(self.wepsilon * self.wepsilon_decay, self.wepsilon_min)
+        policy_sel = self.exploration_strategy.get_action(w_values, x)
         sel_action = nominated_actions[policy_sel]
         return sel_action, policy_sel, nominated_actions
 
-    def store_transition(self, s, a, rewards, s_, d, policy_sel):
-        """Store the experiences to all agents"""
+    def store_memory(self, s, a, rewards, s_, d, policy_sel):
         for i in range(self.num_policies):
             print(f"stored q memory in agent {i}")
             self.agents[i].store_memory(s, a, rewards[i], s_, d)
@@ -113,7 +87,6 @@ class DWL(object):
         for i in range(self.num_policies):
             q_loss_part, w_loss_part = self.agents[i].collect_loss_info()
             q_loss.append(q_loss_part), w_loss.append(w_loss_part)
-        # print(q_loss, w_loss)
         return q_loss, w_loss
 
     def train(self):
@@ -126,9 +99,10 @@ class DWL(object):
         self.init_learn_steps_count += 1
 
     def update_params(self):
-        """Update parameters"""
+        """Update parameters for self and all agents"""
         for i in range(self.num_policies):
             self.agents[i].update_params()
+        self.exploration_strategy.update_parameters()
 
     def save(self, path):
         """Save trained Q-networks and W-networks to file"""
