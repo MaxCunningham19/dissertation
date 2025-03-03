@@ -81,10 +81,8 @@ class DWL(object):
                 )
             )
 
-    #
-    # Action nomination function
-    #
     def get_action_nomination(self, x):
+        """Get the action nomination for the given state"""
         nominated_actions = []
         w_values = []
         for agent in self.agents:
@@ -100,10 +98,8 @@ class DWL(object):
         sel_action = nominated_actions[policy_sel]
         return sel_action, policy_sel, nominated_actions
 
-    #
-    # Store experiences to all agents
-    #
     def store_transition(self, s, a, rewards, s_, d, policy_sel):
+        """Store the experiences to all agents"""
         for i in range(self.num_policies):
             print(f"stored q memory in agent {i}")
             self.agents[i].store_memory(s, a, rewards[i], s_, d)
@@ -111,10 +107,8 @@ class DWL(object):
                 print(f"stored w memory in agent {i}")
                 self.agents[i].store_w_memory(s, a, rewards[i], s_, d)
 
-    #
-    # Get loss values for Q and W
-    #
     def get_loss_values(self):
+        """Get the loss values for Q and W"""
         (q_loss, w_loss) = ([], [])
         for i in range(self.num_policies):
             q_loss_part, w_loss_part = self.agents[i].collect_loss_info()
@@ -122,10 +116,8 @@ class DWL(object):
         # print(q_loss, w_loss)
         return q_loss, w_loss
 
-    #
-    # Train Q and W networks
-    #
-    def learn(self):
+    def train(self):
+        """Train Q and W networks"""
         for i in range(self.num_policies):
             print("training pol :", i)
             self.agents[i].train()
@@ -133,25 +125,19 @@ class DWL(object):
                 self.agents[i].learn_w()
         self.init_learn_steps_count += 1
 
-    #
-    # Updating Beta and exploration rate
-    #
     def update_params(self):
+        """Update parameters"""
         for i in range(self.num_policies):
             self.agents[i].update_params()
 
-    #
-    # Save trained Q-networks and W-networks to file
-    #
     def save(self, path):
+        """Save trained Q-networks and W-networks to file"""
         for i in range(self.num_policies):
             self.agents[i].save_net(path + "Q" + str(i) + ".pt")
             self.agents[i].save_w_net(path + "W" + str(i) + ".pt")
 
-    #
-    # Load the pre-trained Q-networks and W-networks from file
-    #
     def load(self, path):
+        """Load the pre-trained Q-networks and W-networks from file"""
         for i in range(self.num_policies):
             print("Loading", i)
             self.agents[i].load_net(path + "Q" + str(i) + ".pt")
