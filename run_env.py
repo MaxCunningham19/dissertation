@@ -18,6 +18,8 @@ from agents.democratic.democratic_dqn_4ly import DemocraticDQN
 parser = build_parser()
 args = parser.parse_args()
 
+run_id = f"{args.env}_{args.model}_{kwargs_to_string(args.model_kwargs)}_{args.exploration}_{kwargs_to_string(args.model_kwargs)}"
+
 # Setup environment
 num_episodes = args.num_episodes
 num_episodes_to_record = args.num_record

@@ -26,7 +26,7 @@ def extract_kwargs(kwargs: list[str]):
 def kwargs_to_string(kwargs: list[str] | None):
     """Converts a list of kwargs to a string that can be used as a filename"""
     if kwargs is None or not isinstance(kwargs, list) or len(kwargs) == 0 or not all(isinstance(item, str) for item in kwargs):
-        return "default"
+        return ""
 
     string = ""
     for i, pair in enumerate(kwargs):
