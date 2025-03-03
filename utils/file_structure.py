@@ -1,4 +1,5 @@
 import os
+from typing import Iterable
 import constants
 
 
@@ -8,7 +9,7 @@ def create_file_structure(path: str):
         os.makedirs(path)
 
 
-def create_file_structures(paths: list[str]):
+def create_file_structures(paths: Iterable[str]):
     """Creates a file structure for the given paths"""
     for path in paths:
         create_file_structure(path)
@@ -29,7 +30,8 @@ def videos_dir(tag: str):
     return f"{constants.RESULTS_DIR}/{tag}/{constants.VIDEOS_DIR}"
 
 
-def generate_file_structure(tag: str):
+def generate_file_structure(tag: str) -> tuple[str, str, str]:
     """Generates a file structure"""
-    paths = [images_dir(tag), models_dir(tag), videos_dir(tag)]
+    paths = (images_dir(tag), models_dir(tag), videos_dir(tag))
     create_file_structures(paths)
+    return paths
