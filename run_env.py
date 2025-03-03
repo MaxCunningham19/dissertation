@@ -14,11 +14,28 @@ from utils.constants import MODELS_DIR, RESULTS_DIR
 from action_selection.utils import create_exploration_strategy
 from utils import extract_kwargs, build_parser, run_env, plot_agent_actions_2d, plot_over_time_multiple_subplots, smooth, kwargs_to_string
 from agents.democratic.democratic_dqn_4ly import DemocraticDQN
+from utils import generate_file_structure, kwargs_to_string
 
 parser = build_parser()
 args = parser.parse_args()
 
-run_id = f"{args.env}_{args.model}_{kwargs_to_string(args.model_kwargs)}_{args.exploration}_{kwargs_to_string(args.model_kwargs)}"
+
+agent_dictionary = {"democratic": DemocraticDQN}
+
+# Ensure model is valid
+agent_name = "".join(args.model.split(" ")).lower()
+if agent_name not in agent_dictionary:
+    print(f"Invalid model selection: {args.model}")
+    exit(1)
+
+# Ensure exploration strategy is valid
+exploration_strategy = None
+try:
+    exploration_strategy = create_exploration_strategy(args.exploration, **extract_kwargs(args.exploration_kwargs))
+except Exception as e:
+    print(f"Invalid exploration strategy: {e}")
+    exit(1)
+
 
 # Setup environment
 num_episodes = args.num_episodes
@@ -32,18 +49,22 @@ n_state = env.observation_space.shape[0]
 n_action = env.action_space.n
 n_policy = env.unwrapped.reward_space.shape[0]
 
+results_dir, images_dir, models_dir, videos_dir = generate_file_structure(
+    args.env,
+    kwargs_to_string(args.env_kwargs),
+    args.model,
+    kwargs_to_string(args.model_kwargs),
+    args.exploration,
+    kwargs_to_string(args.exploration_kwargs),
+)
+
 if args.record:
-    env = RecordVideo(env, "videos/demo", episode_trigger=lambda e: e % interval == 0, name_prefix=args.env)
+    env = RecordVideo(env, videos_dir, episode_trigger=lambda e: e % interval == 0, name_prefix=args.env)
 
 # Setup agent
-agent_name = "".join(args.model.split(" ")).lower()
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-agent_dictionary = {"democratic": DemocraticDQN}
 
-if agent_name not in agent_dictionary:
-    print("Invalid model selection")
-    exit(1)
 
 exploration_strategy = create_exploration_strategy(args.exploration, **extract_kwargs(args.exploration_kwargs))
 
@@ -54,21 +75,15 @@ agent = agent_dictionary[agent_name](
 if args.path_to_load_model is not None and len(args.path_to_load_model) > 0:
     agent.load(args.path_to_load_model)
 
-
 # Run environment
 episode_rewards, loss, csv_data = run_env(num_episodes, env, agent, n_policy)
 
-if args.path_to_save_model is not None and len(args.path_to_save_model) > 0:
-    agent.save(f"{args.path_to_save_model}/")
-else:
-    agent.save(f"{MODELS_DIR}/{args.model}_{args.env}_{args.exploration}_{kwargs_to_string(args.model_kwargs)}")
+
+agent.save(f"{models_dir}")
 
 headers = ["episode", "episode_reward", "loss"]
 df = pd.DataFrame(csv_data, columns=headers)
-if args.path_to_csv_save is not None and len(args.path_to_csv_save) > 0:
-    df.to_csv(args.path_to_csv_save, index=False)
-else:
-    df.to_csv(f"{RESULTS_DIR}/{args.model}_{args.env}_{args.exploration}_{kwargs_to_string(args.model_kwargs)}.csv", index=False)
+df.to_csv(f"{results_dir}/results.csv", index=False)
 
 # performance measurements
 if args.plot:

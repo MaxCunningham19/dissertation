@@ -9,8 +9,6 @@ def build_parser():
     parser.add_argument("--num_record", type=int, default=25, help="number of episodes to record")
 
     parser.add_argument("--path_to_load_model", type=str, help="path to load a network from")
-    parser.add_argument("--path_to_save_model", type=str, help="path to save the network to")
-    parser.add_argument("--path_to_csv_save", type=str, help="path to save the csv results to")
 
     parser.add_argument("--model", type=str, default="democratic", help="MORL model to use: dwn, democratic, dueling")
     parser.add_argument(

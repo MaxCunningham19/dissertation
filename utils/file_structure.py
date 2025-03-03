@@ -30,6 +30,11 @@ def videos_dir(env_tag: str, model_tag: str):
     return f"{constants.RESULTS_DIR}/{env_tag}/{model_tag}/{constants.VIDEOS_DIR}/"
 
 
+def results_dir(env_tag: str, model_tag: str):
+    """Returns the results directory"""
+    return f"{constants.RESULTS_DIR}/{env_tag}/{model_tag}/"
+
+
 def fnrp(string: str) -> str:
     """Makes a string file name safe"""
     return string.replace("-", "_").replace(" ", "").replace(".", "_")
@@ -38,7 +43,11 @@ def fnrp(string: str) -> str:
 def generate_file_structure(
     env: str, env_kwargs_string: str, model: str, model_kwargs_string: str, exploration: str, exploration_kwargs_string: str
 ) -> tuple[str, str, str]:
-    """Generates a file structure"""
+    """
+    Generates a file structure
+    Returns:
+        paths: A tuple of the paths to the results,images, models, and videos directories
+    """
     formatted_env_kwargs = fnrp(env_kwargs_string)
     env_tag = fnrp(env)
     if formatted_env_kwargs != "":
@@ -55,6 +64,6 @@ def generate_file_structure(
         exploration_tag += f"_{formatted_exploration_kwargs}"
 
     model_tag = model_tag + "__" + exploration_tag
-    paths = (images_dir(env_tag, model_tag), models_dir(env_tag, model_tag), videos_dir(env_tag, model_tag))
+    paths = (results_dir(env_tag, model_tag), images_dir(env_tag, model_tag), models_dir(env_tag, model_tag), videos_dir(env_tag, model_tag))
     create_file_structures(paths)
     return paths
