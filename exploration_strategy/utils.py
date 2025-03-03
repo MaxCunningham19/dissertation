@@ -1,3 +1,4 @@
+from .Greedy import Greedy
 from .ExplorationStrategy import ExplorationStrategy
 from .Boltzmann import Boltzmann
 from .DecayBoltzmann import DecayBoltzmann
@@ -15,6 +16,7 @@ def create_exploration_strategy(strategy_name: str, *args, **kwargs) -> Explorat
         "epsilon": EpsilonGreedy,
         "decay_epsilon": DecayEpsilonGreedy,
         "pheromones": Pheromones,
+        "greedy": Greedy,
     }
 
     if strategy_name not in strategies:
