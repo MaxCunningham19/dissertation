@@ -29,5 +29,6 @@ def run_env(num_episodes: int, env: Env, agent, n_policy: int):
         if i % 10 == 0:
             print("Epsiode", i, episode_reward, loss_info)
         agent.train()
+        agent.update_params()
 
     return episode_rewards, loss, csv_data
