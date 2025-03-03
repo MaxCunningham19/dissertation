@@ -5,6 +5,7 @@ from .utils import softmax
 
 
 def plot_agent_actions_2d(states: list[list], agent, n_action, bar_width=0.2):
+    """Plots a grid of bar charts of the values of each action for each state"""
     if len(states) <= 0:
         return
     xs = np.arange(n_action)
@@ -34,11 +35,13 @@ def plot_agent_actions_2d(states: list[list], agent, n_action, bar_width=0.2):
 
 
 def smooth(array, window_size=1):
+    """Calculates a smoothed moving average of the array"""
     smoothed_rewards = np.convolve(array, np.ones(window_size) / window_size, mode="valid")
     return np.arange(len(smoothed_rewards)) + window_size // 2
 
 
 def plot_over_time_multiple_subplots(n_policy, values_to_plot, label=None, color="red", colors=None, xlabel="", ylabel="", titles=None):
+    """Plots the values of each individual policy over multiple iterations in multiple subplots"""
     _, axes = plt.subplots(n_policy, 1)
     for i, current_values in enumerate(values_to_plot):
         x_values = np.arange(len(current_values))

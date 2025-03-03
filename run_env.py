@@ -1,19 +1,16 @@
 import gym
 from gym.wrappers.record_video import RecordVideo
 import mo_gymnasium as mo_gym
-from mo_gymnasium.envs.deep_sea_treasure.deep_sea_treasure import CONCAVE_MAP
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 import pandas as pd
-import argparse
 
-from action_selection import EpsilonGreedy
+from constants import MODELS_DIR, RESULTS_DIR
+
 from action_selection.utils import create_exploration_strategy
-from utils import extract_kwargs, softmax, build_parser, run_env
+from utils import extract_kwargs, build_parser, run_env, plot_agent_actions_2d, plot_over_time_multiple_subplots, smooth, kwargs_to_string
+
 from agents.democratic.democratic_dqn_4ly import DemocraticDQN
-from agents.dwn.DWL_4ly import DWL
-from utils.plotting import plot_agent_actions_2d, plot_over_time_multiple_subplots, smooth
 
 parser = build_parser()
 args = parser.parse_args()
@@ -56,11 +53,17 @@ if args.path_to_load_model is not None and len(args.path_to_load_model) > 0:
 # Run environment
 episode_rewards, loss, csv_data = run_env(num_episodes, env, agent, n_policy)
 
-agent.save(f"{args.path_to_save_model}/{args.model}")
+if args.path_to_save_model is not None and len(args.path_to_save_model) > 0:
+    agent.save(f"{args.path_to_save_model}/")
+else:
+    agent.save(f"{MODELS_DIR}/{args.model}_{args.env}_{args.exploration}_{kwargs_to_string(args.model_kwargs)}")
 
 headers = ["episode", "episode_reward", "loss"]
 df = pd.DataFrame(csv_data, columns=headers)
-df.to_csv(args.path_to_csv_save, index=False)
+if args.path_to_csv_save is not None and len(args.path_to_csv_save) > 0:
+    df.to_csv(args.path_to_csv_save, index=False)
+else:
+    df.to_csv(f"{RESULTS_DIR}/{args.model}_{args.env}_{args.exploration}_{kwargs_to_string(args.model_kwargs)}.csv", index=False)
 
 # performance measurements
 if args.plot:

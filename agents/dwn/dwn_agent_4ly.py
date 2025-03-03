@@ -60,7 +60,6 @@ class DWA(object):
         wepsilon_min=0.1,
         w_tau=0.001,
         walpha=0.001,
-        target_replace_fre=1000,
     ):
 
         self.input_shape = input_shape

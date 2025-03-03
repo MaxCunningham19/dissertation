@@ -3,6 +3,7 @@ import torch
 
 
 def extract_kwargs(kwargs: list[str]):
+    """Extracts the kwargs from the list of strings .e.g key=value"""
     kwargs_dict = {}
     if kwargs:
         for pair in kwargs:
@@ -22,7 +23,19 @@ def extract_kwargs(kwargs: list[str]):
     return kwargs_dict
 
 
+def kwargs_to_string(kwargs: list[str]):
+    """Converts a list of kwargs to a string that can be used as a filename"""
+    string = ""
+    for i, pair in enumerate(kwargs):
+        pair = pair.replace(" ", "").replace("/", "_").replace(".", "_").replace("=", "_")
+        string += f"{pair}"
+        if i < len(kwargs) - 1:
+            string += "__"
+    return string
+
+
 def convert_to_num_if_possible(value: str):
+    """Converts a string to a number if possible"""
     try:
         if "." in value:
             value = float(value)
@@ -34,6 +47,7 @@ def convert_to_num_if_possible(value: str):
 
 
 def softmax(x):
+    """Applies the softmax function to a numpy array"""
     if isinstance(x, torch.Tensor):
         if x.is_cuda:
             x = x.cpu()
