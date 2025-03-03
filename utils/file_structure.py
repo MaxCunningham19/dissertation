@@ -1,10 +1,17 @@
 import os
+import shutil
 from typing import Iterable
 from . import constants
 
 
 def create_file_structure(path: str):
-    """Creates a file structure for the given path"""
+    """
+    Creates a file structure for the given path.
+    If delete_if_exists is True, the directory will be deleted if it exists
+    """
+    if os.path.exists(path):
+        shutil.rmtree(path)
+
     if not os.path.exists(path):
         os.makedirs(path)
 
