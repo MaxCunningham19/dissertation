@@ -86,25 +86,22 @@ df = pd.DataFrame(csv_data, columns=headers)
 df.to_csv(f"{results_dir}/results.csv", index=False)
 
 # performance measurements
-if args.plot:
 
-    loss = np.array(loss).T
-    plot_over_time_multiple_subplots(n_policy, loss)
+loss = np.array(loss).T
+plot_over_time_multiple_subplots(n_policy, loss, save_path=f"{images_dir}/loss.png", plot=args.plot)
 
-    episode_rewards = np.array(episode_rewards).T
+episode_rewards = np.array(episode_rewards).T
+window_size = 50
+for i, _ in enumerate(episode_rewards):
+    episode_rewards[i] = smooth(episode_rewards[i])
+plot_over_time_multiple_subplots(n_policy, episode_rewards, save_path=f"{images_dir}/rewards.png", plot=args.plot)
 
-    window_size = 50
-    for i, _ in enumerate(episode_rewards):
-        episode_rewards[i] = smooth(episode_rewards[i])
-
-    plot_over_time_multiple_subplots(n_policy, episode_rewards)
-
-    low = env.observation_space.low.astype(np.int32)
-    high = env.observation_space.high.astype(np.int32)
-    rows = high[1] - low[1]
-    cols = high[0] - low[0]
-    states = [[0.0] * cols for _ in range(rows)]
-    plot_agent_actions_2d(states, agent, n_action)
+low = env.observation_space.low.astype(np.int32)
+high = env.observation_space.high.astype(np.int32)
+rows = high[1] - low[1]
+cols = high[0] - low[0]
+states = [[0.0] * cols for _ in range(rows)]
+plot_agent_actions_2d(states, agent, n_action, save_path=f"{images_dir}/actions.png", plot=args.plot)
 
 
 env.close()

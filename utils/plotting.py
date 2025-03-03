@@ -4,7 +4,7 @@ import numpy as np
 from .utils import softmax
 
 
-def plot_agent_actions_2d(states: list[list], agent, n_action, bar_width=0.2):
+def plot_agent_actions_2d(states: list[list], agent, n_action, bar_width=0.2, save_path: str = None, plot: bool = False):
     """Plots a grid of bar charts of the values of each action for each state"""
     if len(states) <= 0:
         return
@@ -31,7 +31,10 @@ def plot_agent_actions_2d(states: list[list], agent, n_action, bar_width=0.2):
             ax.bar(xs + bar_width / 2, soft_array2, width=bar_width, label="speed", color="green", alpha=0.7)
 
     plt.legend()
-    plt.show()
+    if save_path is not None:
+        plt.savefig(save_path)
+    if plot:
+        plt.show()
 
 
 def smooth(array, window_size=1):
@@ -40,7 +43,9 @@ def smooth(array, window_size=1):
     return np.arange(len(smoothed_rewards)) + window_size // 2
 
 
-def plot_over_time_multiple_subplots(n_policy, values_to_plot, label=None, color="red", colors=None, xlabel="", ylabel="", titles=None):
+def plot_over_time_multiple_subplots(
+    n_policy, values_to_plot, label=None, color="red", colors=None, xlabel="", ylabel="", titles=None, save_path: str = None, plot: bool = False
+):
     """Plots the values of each individual policy over multiple iterations in multiple subplots"""
     _, axes = plt.subplots(n_policy, 1)
     for i, current_values in enumerate(values_to_plot):
@@ -54,4 +59,7 @@ def plot_over_time_multiple_subplots(n_policy, values_to_plot, label=None, color
             axes[i].set_title(titles[i])
 
     plt.tight_layout()
-    plt.show()
+    if save_path is not None:
+        plt.savefig(save_path)
+    if plot:
+        plt.show()
