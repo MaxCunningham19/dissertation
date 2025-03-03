@@ -15,7 +15,7 @@ class Pheromones(ExplorationStrategy):
         pheromone_inc=1.0,
         alpha=1.0,
         beta=1.0,
-        state_map: Callable[[Any | None], Hashable] = lambda x: x,
+        state_map: Callable[[Any | None], Hashable] = lambda x: tuple(x),
         pheromone_min=MIN_PHEROMONE,
     ):
         self.pheromone_decay = pheromone_decay

@@ -23,8 +23,11 @@ def extract_kwargs(kwargs: list[str]):
     return kwargs_dict
 
 
-def kwargs_to_string(kwargs: list[str]):
+def kwargs_to_string(kwargs: list[str] | None):
     """Converts a list of kwargs to a string that can be used as a filename"""
+    if kwargs is None or not isinstance(kwargs, list) or not all(isinstance(item, str) for item in kwargs):
+        return ""
+
     string = ""
     for i, pair in enumerate(kwargs):
         pair = pair.replace(" ", "").replace("/", "_").replace(".", "_").replace("=", "_")

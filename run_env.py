@@ -1,3 +1,7 @@
+import warnings
+
+warnings.filterwarnings("ignore")
+
 import gym
 from gym.wrappers.record_video import RecordVideo
 import mo_gymnasium as mo_gym
@@ -5,11 +9,10 @@ import numpy as np
 import torch
 import pandas as pd
 
-from constants import MODELS_DIR, RESULTS_DIR
-
+import envs  # This imports all the environments
+from utils.constants import MODELS_DIR, RESULTS_DIR
 from action_selection.utils import create_exploration_strategy
 from utils import extract_kwargs, build_parser, run_env, plot_agent_actions_2d, plot_over_time_multiple_subplots, smooth, kwargs_to_string
-
 from agents.democratic.democratic_dqn_4ly import DemocraticDQN
 
 parser = build_parser()

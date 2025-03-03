@@ -25,7 +25,7 @@ def build_parser():
         help="exploration strategy specific parameters not provided below e.g. --exploration_kwargs arg1=value1 arg2=value2",
     )
 
-    parser.add_argument("--env", type=str, default="deep-sea-treasure-v0", help="the mo-gymnasium environment to train the agent on")
+    parser.add_argument("--env", type=str, default="deep-sea-treasure-concave-v0", help="the mo-gymnasium environment to train the agent on")
     parser.add_argument("--env_kwargs", type=str, nargs="*", help="the key value pair arguments for the environment e.g. key1=value1")
 
     parser.add_argument(
