@@ -1,13 +1,20 @@
 import numpy as np
 from abc import ABC, abstractmethod
 
+import torch
+
 
 class ExplorationStrategy(ABC):
 
-    def get_action(self, actions: np.ndarray, state=None):
+    def get_action(self, actions: np.ndarray | torch.Tensor, state=None):
         """
         Returns the index of the action
         """
+        if isinstance(actions, torch.Tensor):
+            if actions.is_cuda:
+                actions = actions.cpu()
+            actions = actions.numpy()
+
         if type(actions).__name__ != "ndarray":
             return -1
 
