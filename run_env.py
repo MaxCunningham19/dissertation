@@ -13,7 +13,7 @@ import envs  # This imports all the environments
 from utils.constants import MODELS_DIR, RESULTS_DIR
 from exploration_strategy.utils import create_exploration_strategy
 from utils import extract_kwargs, build_parser, run_env, plot_agent_actions_2d, plot_over_time_multiple_subplots, smooth, kwargs_to_string
-from agents import DemocraticDQN, DWL
+from agents import get_agent
 from utils import generate_file_structure, kwargs_to_string
 
 parser = build_parser()
@@ -24,12 +24,12 @@ parser.add_argument(
 args = parser.parse_args()
 
 
-agent_dictionary = {"democratic": DemocraticDQN, "dwl": DWL}
-
 # Ensure model is valid
 agent_name = "".join(args.model.split(" ")).lower()
-if agent_name not in agent_dictionary:
-    print(f"Invalid model selection: {args.model}")
+try:
+    agent = get_agent(agent_name)
+except ValueError as e:
+    print(f"Invalid model selection: {e}")
     exit(1)
 
 # Ensure exploration strategy is valid
@@ -77,9 +77,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 exploration_strategy = create_exploration_strategy(args.exploration, **extract_kwargs(args.exploration_kwargs))
 
-agent = agent_dictionary[agent_name](
-    env.observation_space.shape, n_action, n_policy, exploration_strategy, device=device, **extract_kwargs(args.model_kwargs)
-)
+agent = agent(env.observation_space.shape, n_action, n_policy, exploration_strategy, device=device, **extract_kwargs(args.model_kwargs))
 
 if args.path_to_load_model is not None and len(args.path_to_load_model) > 0:
     agent.load(args.path_to_load_model)

@@ -1,3 +1,5 @@
-from .democratic.democratic_dqn_4ly import DemocraticDQN
-from .dwn.DWL_4ly import DWL
+from .democratic import DemocraticDQN
+from .dwn import DWL
+from .DDWN import BaseDDWN
 from .AbstractAgent import AbstractAgent
+from .utils import get_agent
