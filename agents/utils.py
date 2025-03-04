@@ -12,4 +12,4 @@ def get_agent(agent_name: str) -> AbstractAgent:
     elif agent_name == "ddwn":
         return BaseDDWN
     else:
-        raise ValueError(f"Invalid agent name: {agent_name}")
+        raise ValueError(f"Invalid agent name: {agent_name}. Possible values are: democratic, dwl, ddwn")

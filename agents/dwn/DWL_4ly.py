@@ -91,7 +91,7 @@ class DWL(AbstractAgent):
         for i in range(self.num_policies):
             self.agents[i].train()
             if self.init_learn_steps_count == self.init_learn_steps_num:  # we start training W-network with delay
-                self.agents[i].learn_w()
+                self.agents[i].train_w()
         self.init_learn_steps_count += 1
 
     def update_params(self):

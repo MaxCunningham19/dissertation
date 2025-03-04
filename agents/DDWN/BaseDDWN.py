@@ -84,9 +84,9 @@ class BaseDDWN(AbstractAgent):
 
     def get_weighted_actions(self, q_values: list[list[float]], w_values: list[float]) -> list[float]:
         """Get the weighted actions for the given Q-values and W-values"""
-        weighted_actions = []
+        weighted_actions = [0.0] * self.num_actions
         for agent_q_values, agent_w_value in zip(q_values, w_values):
-            weighted_actions.append(self.softmax(agent_q_values) * agent_w_value)
+            weighted_actions = weighted_actions + (self.softmax(agent_q_values) * agent_w_value)
         return weighted_actions
 
     def store_memory(self, s, a, rewards, s_, d, info: dict):
@@ -107,7 +107,7 @@ class BaseDDWN(AbstractAgent):
         for i in range(self.num_policies):
             self.agents[i].train()
             if self.init_learn_steps_count == self.init_learn_steps_num:  # we start training W-network with delay
-                self.agents[i].learn_w()
+                self.agents[i].train_w()
         self.init_learn_steps_count += 1
 
     def update_params(self):
