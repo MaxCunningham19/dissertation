@@ -88,7 +88,13 @@ class DQN(object):
         with torch.no_grad():
             action_values = self.policy_net(state)
 
-        return action_values
+        if isinstance(action_values, torch.Tensor):
+            if action_values.is_cuda:
+                action_values = action_values.cpu()
+            action_values = action_values.numpy()
+        action_values = action_values.flatten()
+
+        return action_values.tolist()
 
     def get_action(self, x, training=True):
         """Nominate an action"""
@@ -151,7 +157,7 @@ class DQN(object):
         self.policy_net.load_state_dict(torch.load(path)), self.target_net.load_state_dict(torch.load(path))
         self.policy_net.eval(), self.target_net.eval()
 
-    def collect_loss_info(self):
+    def collect_loss_info(self) -> float:
         """Get current loss value"""
         avg_q_loss = np.average(self.q_episode_loss)
         self.q_episode_loss = []

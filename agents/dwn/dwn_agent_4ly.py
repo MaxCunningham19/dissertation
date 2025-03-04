@@ -120,6 +120,25 @@ class DWA(object):
 
         return self.exploration_strategy.get_action(action_values, state)
 
+    def get_actions(self, x):
+        """Get the action for the given state"""
+        if type(x).__name__ == "ndarray":
+            state = torch.from_numpy(x).float().unsqueeze(0).to(self.device)
+        else:
+            state = x
+        a = self.policy_net.eval()
+        action_values = []
+        with torch.no_grad():
+            action_values = self.policy_net(state)
+
+        if isinstance(action_values, torch.Tensor):
+            if action_values.is_cuda:
+                action_values = action_values.cpu()
+            action_values = action_values.numpy()
+        action_values = action_values.flatten()
+
+        return action_values.tolist()
+
     def get_w_value(self, x):
         """Get the W-value for the given state"""
         if type(x).__name__ == "ndarray":

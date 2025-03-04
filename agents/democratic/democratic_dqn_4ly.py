@@ -6,11 +6,11 @@ import torch.nn.functional as F
 from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool2d, Module, Softmax, BatchNorm2d, Dropout
 
 from exploration_strategy import ExplorationStrategy
-
+from agents.AbstractAgent import AbstractAgent
 from .dqn_agent import DQN
 
 
-class DemocraticDQN(object):
+class DemocraticDQN(AbstractAgent):
 
     def __init__(
         self,
@@ -76,7 +76,6 @@ class DemocraticDQN(object):
         return e_x / e_x.sum()
 
     def get_action(self, x):
-        """Nominate an action"""
         action_advantages = np.array([0.0] * self.num_actions)
 
         for i, agent in enumerate(self.agents):
@@ -85,7 +84,7 @@ class DemocraticDQN(object):
             preference_weighted_scaled_q_values = scaled_q_values * self.human_preference[i]
             action_advantages = action_advantages + preference_weighted_scaled_q_values
 
-        return self.exploration_strategy.get_action(action_advantages, x)
+        return self.exploration_strategy.get_action(action_advantages, x), {}
 
     def get_actions(self, x):
         """Get every action from every agent"""
@@ -99,7 +98,7 @@ class DemocraticDQN(object):
 
         return action_advantages
 
-    def get_agent_info(self, x):
+    def get_objective_info(self, x):
         """This is used to get info from each agent regarding the state x"""
         state_values = []
 
@@ -109,40 +108,36 @@ class DemocraticDQN(object):
 
         return state_values
 
-    def store_transition(self, s, a, rewards, s_, d):
+    def store_memory(self, s, a, rewards, s_, d, info: dict):
         """Store experience to all agents"""
         for i in range(self.num_policies):
             self.agents[i].store_memory(s, a, rewards[i], s_, d)
 
-    def store_memory(self, s, a, rewards, s_, d):
-        """Store experience to all agents"""
-        self.store_transition(s, a, rewards, s_, d)
-
-    def get_loss_values(self):
+    def get_loss_values(self) -> list[tuple[float, ...]]:
         """Get loss values for Q"""
-        q_loss = []
+        q_loss: list[tuple[float]] = []
         for i in range(self.num_policies):
             q_loss_part = self.agents[i].collect_loss_info()
-            q_loss.append(q_loss_part)
+            q_loss.append((q_loss_part))
         return q_loss
 
-    def train(self):
+    def train(self) -> None:
         """Train all Q-networks"""
         for i in range(self.num_policies):
             self.agents[i].train()  # agents update their internal parameters as they go
         self.update_params()
 
-    def update_params(self):
+    def update_params(self) -> None:
         """Update exploration rate"""
         self.exploration_strategy.update_parameters()
 
-    def save(self, path):
+    def save(self, path: str) -> None:
         """Save all Q-networks"""
         for i in range(self.num_policies):
             print("Saving policy", i)
             self.agents[i].save_net(path + "Q" + str(i) + ".pt")
 
-    def load(self, path):
+    def load(self, path: str) -> None:
         """Load all Q-networks"""
         for i in range(self.num_policies):
             print("Loading", i)

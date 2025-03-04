@@ -1,8 +1,9 @@
 import numpy as np
 from gym import Env
+from agents import AbstractAgent
 
 
-def run_env(num_episodes: int, env: Env, agent, n_policy: int):
+def run_env(num_episodes: int, env: Env, agent: AbstractAgent, n_policy: int):
     """Runs the environment and agent for the specified number of epsiodes and returns the rewards, loss, and csv_data"""
     csv_data = []
     loss = []
@@ -13,10 +14,9 @@ def run_env(num_episodes: int, env: Env, agent, n_policy: int):
 
         obs, _ = env.reset()
         while not (done or truncated):
-            action = agent.get_action(obs)
-
+            action, info = agent.get_action(obs)
             obs_, reward, done, truncated, _ = env.step(action)
-            agent.store_memory(obs, action, reward, obs_, done)
+            agent.store_memory(obs, action, reward, obs_, done, info)
             obs = obs_
 
             episode_reward = episode_reward + np.array(reward)

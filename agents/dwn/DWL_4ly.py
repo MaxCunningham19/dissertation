@@ -3,7 +3,7 @@ from agents.AbstractAgent import AbstractAgent
 from .dwn_agent_4ly import DWA
 
 
-class DWL(object):
+class DWL(AbstractAgent):
 
     def __init__(
         self,
@@ -60,7 +60,7 @@ class DWL(object):
                 )
             )
 
-    def get_action(self, x):
+    def get_action(self, x) -> tuple[int, dict]:
         """Get the action nomination for the given state"""
         nominated_actions = []
         w_values = []
@@ -68,31 +68,27 @@ class DWL(object):
             nominated_actions.append(agent.get_action(x))
             w_values.append(agent.get_w_value(x))
 
-        # Try different W-policies the same logic as exploration vs explotation
         policy_sel = self.exploration_strategy.get_action(w_values, x)
         sel_action = nominated_actions[policy_sel]
-        return sel_action, policy_sel, nominated_actions
+        return sel_action, {"policy_sel": policy_sel, "nominated_actions": nominated_actions}
 
-    def store_memory(self, s, a, rewards, s_, d, policy_sel):
+    def store_memory(self, s, a, rewards, s_, d, info: dict):
         for i in range(self.num_policies):
-            print(f"stored q memory in agent {i}")
             self.agents[i].store_memory(s, a, rewards[i], s_, d)
-            if i != policy_sel:  # Do not store experience of the policy we selected
-                print(f"stored w memory in agent {i}")
+            if i != info["policy_sel"]:  # Do not store experience of the policy we selected
                 self.agents[i].store_w_memory(s, a, rewards[i], s_, d)
 
-    def get_loss_values(self):
+    def get_loss_values(self) -> list[tuple[float, ...]]:
         """Get the loss values for Q and W"""
-        (q_loss, w_loss) = ([], [])
+        losses: list[tuple[float, ...]] = []
         for i in range(self.num_policies):
-            q_loss_part, w_loss_part = self.agents[i].collect_loss_info()
-            q_loss.append(q_loss_part), w_loss.append(w_loss_part)
-        return q_loss, w_loss
+            q_loss, w_loss = self.agents[i].collect_loss_info()
+            losses.append((q_loss, w_loss))
+        return losses
 
-    def train(self):
+    def train(self) -> None:
         """Train Q and W networks"""
         for i in range(self.num_policies):
-            print("training pol :", i)
             self.agents[i].train()
             if self.init_learn_steps_count == self.init_learn_steps_num:  # we start training W-network with delay
                 self.agents[i].learn_w()
@@ -113,6 +109,15 @@ class DWL(object):
     def load(self, path):
         """Load the pre-trained Q-networks and W-networks from file"""
         for i in range(self.num_policies):
-            print("Loading", i)
             self.agents[i].load_net(path + "Q" + str(i) + ".pt")
             self.agents[i].load_w_net(path + "W" + str(i) + ".pt")
+
+    def get_objective_info(self, x):
+        """This is used to get info from each agent regarding the state x"""
+        state_values = []
+
+        for i, agent in enumerate(self.agents):
+            q_values = agent.get_actions(x)
+            state_values.append(q_values)
+
+        return state_values
