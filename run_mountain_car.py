@@ -17,10 +17,7 @@ from agents import DemocraticDQN, DWL
 from utils import generate_file_structure, kwargs_to_string
 
 parser = build_parser()
-parser.add_argument("--env", type=str, required=True, help="the environment to use: mountain_car, deep_sea_treasure")
-parser.add_argument(
-    "--env_kwargs", type=str, nargs="*", help="environment specific parameters not provided below e.g. --env_kwargs arg1=value1 arg2=value2"
-)
+parser.add_argument("--mountain_car_type", type=str, default="", help="the type of mountain car to use: 3d, timemove, timespeed")
 args = parser.parse_args()
 
 
@@ -48,27 +45,29 @@ interval = num_episodes // num_episodes_to_record
 if interval == 0:
     interval = 1
 
-env = mo_gym.make(args.env, render_mode="rgb_array", **extract_kwargs(args.env_kwargs))
+env_name = f"mo-mountaincar-v0"
+match args.mountain_car_type:
+    case "3d":
+        env_name = f"mo-mountaincar-3d-v0"
+    case "timemove":
+        env_name = f"mo-mountaincar-timemove-v0"
+    case "timespeed":
+        env_name = f"mo-mountaincar-timespeed-v0"
+
+env = mo_gym.make(env_name, render_mode="rgb_array")
 n_state = env.observation_space.shape[0]
 n_action = env.action_space.n
 n_policy = env.unwrapped.reward_space.shape[0]
 
-deep_sea_treasure_labels = ["time penalty", "treasure value", "fuel"]
-objective_labels = None
-if "deep-sea-treasure" in args.env:
-    objective_labels = deep_sea_treasure_labels
+mountain_car_labels = ["time penalty", "reverse penalty", "forward penalty"]
+
 
 results_dir, images_dir, models_dir, videos_dir = generate_file_structure(
-    args.env,
-    kwargs_to_string(args.env_kwargs),
-    args.model,
-    kwargs_to_string(args.model_kwargs),
-    args.exploration,
-    kwargs_to_string(args.exploration_kwargs),
+    env_name, "", args.model, kwargs_to_string(args.model_kwargs), args.exploration, kwargs_to_string(args.exploration_kwargs)
 )
 
 if args.record:
-    env = RecordVideo(env, videos_dir, episode_trigger=lambda e: e % interval == 0, name_prefix=args.env)
+    env = RecordVideo(env, videos_dir, episode_trigger=lambda e: e % interval == 0)
 
 # Setup agent
 

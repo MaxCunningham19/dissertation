@@ -1,8 +1,8 @@
 import numpy as np
-import gym
-from gym.utils import seeding
+import gymnasium as gym
 from PIL import Image
 from gym.spaces import Box, Discrete
+from gymnasium.utils import EzPickle
 
 
 COST_NOOP = 0.01
@@ -15,7 +15,7 @@ LIFE_COST = 0.5
 SAFE_REWARDS = 2.0
 
 
-class TestSimpleMOEnv(gym.Env):
+class TestSimpleMOEnv(gym.Env, EzPickle):
     """
     A MO-enviroment with 3 stationary goals, an exit, the agent has to collect at least one goal before exiting the stage
     Rewards are: Speed to Exit, Goals Completed
@@ -29,7 +29,6 @@ class TestSimpleMOEnv(gym.Env):
         self.render_mode = render_mode
         self.frames_per_second = fps
         self.viewer = None
-        self.seed()
         self.width = min(width, 2)
         self.height = min(height, 2)
         self.max_steps = max_steps
@@ -68,11 +67,7 @@ class TestSimpleMOEnv(gym.Env):
     def get_obs(self):
         return np.array([self.agent[0], self.agent[1]], dtype=np.int32)
 
-    def seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
-
-    def reset(self):
+    def reset(self, seed=None, options=None):
         self.meters = [5, 5]
         self.steps = 0
         self.agent = (self.width - 1, self.height - 1)

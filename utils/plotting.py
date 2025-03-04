@@ -4,39 +4,72 @@ import numpy as np
 from .utils import softmax
 
 
-def plot_agent_actions_2d(states: list[list], agent, n_action, bar_width=0.2, save_path: str = None, plot: bool = False, n_policy: int = 2):
+def plot_agent_actions_2d(
+    states: list[list],
+    agent,
+    n_action,
+    n_policy,
+    bar_width=0.2,
+    save_path: str = None,
+    plot: bool = False,
+    title: str = "",
+    should_plot: lambda state: bool = lambda state: True,
+    objective_labels: list[str] | None = None,
+):
     """Plots a grid of bar charts of the values of each action for each state"""
     if len(states) <= 0 or n_policy <= 0 or n_action <= 0:
         return
 
     colors = plt.cm.viridis(np.linspace(0, 1, n_policy))
     xs = np.arange(n_action)
-    fig, axes = plt.subplots(len(states), len(states[0]))
 
-    # Pre-calculate the bar width for each objective
+    # Handle single subplot case
+    fig, axes = plt.subplots(len(states), len(states[0]))
+    if not hasattr(axes, "__len__"):
+        axes = [axes]
+    else:
+        axes = axes.flatten()
+
     bar_width_single = bar_width / n_policy
-    midpoint_policy = n_policy // 2
-    even_poicy_offset = 1 if n_policy % 2 == 0 else 0
+    if bar_width_single < 0.1:
+        bar_width_single = 0.1
+
+    negative_offset = -bar_width_single * ((n_policy) // 2)
+    legend = {}
+    legend_set = False
+
+    if objective_labels is None:
+        objective_labels = [f"objective {i+1}" for i in range(n_policy)]
 
     for y, row in enumerate(states):
         for x, value in enumerate(row):
-            ax = axes[x, y]
-            ax.set_xticks([])
-            ax.set_yticks([])
-            idx = np.array([x, y])
-            agent_info = agent.get_objective_info(idx)
-            for i, info in enumerate(agent_info):
-                advantages = info - np.mean(info)
-                soft_array = softmax(advantages)
-                # Plot bars in the current subplot
-                negative_offset = -bar_width_single * ((n_policy) // 2)
-                offset = negative_offset + (i) * (bar_width_single)
-                print(i, negative_offset, offset, (bar_width_single))
-                ax.bar(xs + offset, soft_array, width=bar_width_single, label=f"objective {i}", color=colors[i], alpha=0.7)
+            # Get the correct axis based on whether we have a single subplot or multiple
+            current_ax = axes[y * len(states[0]) + x]
 
-    plt.legend()
+            current_ax.set_xticks([])
+            current_ax.set_yticks([])
+
+            if x == 0:
+                current_ax.set_ylabel(f"{y}")
+            if y == len(states) - 1:
+                current_ax.set_xlabel(f"{x}")
+
+            idx = np.array([x, y])
+            if should_plot(idx):
+                agent_info = agent.get_objective_info(idx)
+                for i, info in enumerate(agent_info):
+                    advantages = info - np.mean(info)
+                    soft_array = softmax(advantages)
+
+                    offset = negative_offset + (i) * (bar_width_single)
+                    bar = current_ax.bar(xs + offset, soft_array, width=bar_width_single, label=objective_labels[i], color=colors[i], alpha=0.7)
+                    legend[objective_labels[i]] = bar
+
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
+    plt.figlegend(legend.values(), legend.keys(), loc="lower center", ncol=n_policy, bbox_to_anchor=(0.5, 0.02), fontsize=8)
+    plt.title(f"{title}")
     if save_path is not None:
-        plt.savefig(save_path)
+        plt.savefig(save_path, dpi=500)
     if plot:
         plt.show()
 
@@ -64,6 +97,6 @@ def plot_over_time_multiple_subplots(
 
     plt.tight_layout()
     if save_path is not None:
-        plt.savefig(save_path)
+        plt.savefig(save_path, dpi=500)
     if plot:
         plt.show()
