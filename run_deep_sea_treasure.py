@@ -86,9 +86,11 @@ plot_over_time_multiple_subplots(n_policy, loss, save_path=f"{images_dir}/loss.p
 
 episode_rewards = np.array(episode_rewards).T
 window_size = 50
-for i, _ in enumerate(episode_rewards):
-    episode_rewards[i] = smooth(episode_rewards[i])
-plot_over_time_multiple_subplots(n_policy, episode_rewards, save_path=f"{images_dir}/rewards.png", plot=args.plot)
+smoothed_rewards = [None] * len(episode_rewards)
+for i, episode_reward_objective in enumerate(episode_rewards):
+    smoothed_rewards[i] = smooth(episode_reward_objective, window_size)
+print(smoothed_rewards)
+plot_over_time_multiple_subplots(n_policy, smoothed_rewards, save_path=f"{images_dir}/rewards.png", plot=args.plot)
 
 low = env.observation_space.low.astype(np.int32)
 high = env.observation_space.high.astype(np.int32)
