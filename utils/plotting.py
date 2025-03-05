@@ -77,7 +77,7 @@ def plot_agent_actions_2d(
 def smooth(array, window_size=1):
     """Calculates a smoothed moving average of the array"""
     smoothed_rewards = np.convolve(array, np.ones(window_size) / window_size, mode="valid")
-    return np.arange(len(smoothed_rewards)) + window_size // 2
+    return smoothed_rewards
 
 
 def plot_over_time_multiple_subplots(
