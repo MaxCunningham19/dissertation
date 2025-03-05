@@ -4,22 +4,22 @@ from typing import Iterable
 from . import constants
 
 
-def create_file_structure(path: str):
+def create_file_structure(path: str, delete_if_exists: bool = True):
     """
     Creates a file structure for the given path.
     If delete_if_exists is True, the directory will be deleted if it exists
     """
-    if os.path.exists(path):
+    if delete_if_exists and os.path.exists(path):
         shutil.rmtree(path)
 
     if not os.path.exists(path):
         os.makedirs(path)
 
 
-def create_file_structures(paths: Iterable[str]):
-    """Creates a file structure for the given paths"""
-    for path in paths:
-        create_file_structure(path)
+# def create_file_structures(paths: Iterable[str]):
+#     """Creates a file structure for the given paths"""
+#     for path in paths:
+#         create_file_structure(path)
 
 
 def images_dir(env_tag: str, model_tag: str):
@@ -71,6 +71,16 @@ def generate_file_structure(
         exploration_tag += f"_{formatted_exploration_kwargs}"
 
     model_tag = model_tag + "__" + exploration_tag
-    paths = (results_dir(env_tag, model_tag), images_dir(env_tag, model_tag), models_dir(env_tag, model_tag), videos_dir(env_tag, model_tag))
-    create_file_structures(paths)
-    return paths
+    results, images, models, videos = (
+        results_dir(env_tag, model_tag),
+        images_dir(env_tag, model_tag),
+        models_dir(env_tag, model_tag),
+        videos_dir(env_tag, model_tag),
+    )
+
+    create_file_structure(results, delete_if_exists=False)
+    create_file_structure(images, delete_if_exists=False)
+    create_file_structure(models, delete_if_exists=False)
+    create_file_structure(videos, delete_if_exists=True)
+
+    return results, images, models, videos

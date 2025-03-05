@@ -12,7 +12,7 @@ def extract_kwargs(kwargs: list[str]):
             if "," in value:
                 values = value.split(",")
                 true_vals = [None] * len(values)
-                for i, v in enumerate(value):
+                for i, v in enumerate(values):
                     true_vals[i] = convert_to_num_if_possible(v)
 
                 value = true_vals

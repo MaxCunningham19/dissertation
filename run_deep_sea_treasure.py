@@ -52,7 +52,15 @@ n_state = env.observation_space.shape[0]
 n_action = env.action_space.n
 n_policy = env.unwrapped.reward_space.shape[0]
 
-deep_sea_treasure_labels = ["time penalty", "treasure value"]
+deep_sea_treasure_labels = ["treasure value", "time penalty"]
+
+
+# Setup agent
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+exploration_strategy = create_exploration_strategy(args.exploration, **extract_kwargs(args.exploration_kwargs))
+agent = agent(env.observation_space.shape, n_action, n_policy, exploration_strategy, device=device, **extract_kwargs(args.model_kwargs))
+if args.path_to_load_model is not None and len(args.path_to_load_model) > 0:
+    agent.load(args.path_to_load_model)
 
 
 results_dir, images_dir, models_dir, videos_dir = generate_file_structure(
@@ -61,18 +69,6 @@ results_dir, images_dir, models_dir, videos_dir = generate_file_structure(
 
 if args.record:
     env = RecordVideo(env, videos_dir, episode_trigger=lambda e: e % interval == 0)
-
-# Setup agent
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-
-exploration_strategy = create_exploration_strategy(args.exploration, **extract_kwargs(args.exploration_kwargs))
-
-agent = agent(env.observation_space.shape, n_action, n_policy, exploration_strategy, device=device, **extract_kwargs(args.model_kwargs))
-
-if args.path_to_load_model is not None and len(args.path_to_load_model) > 0:
-    agent.load(args.path_to_load_model)
 
 # Run environment
 episode_rewards, loss, csv_data = run_env(num_episodes, env, agent, n_policy)
@@ -93,5 +89,21 @@ window_size = 50
 for i, _ in enumerate(episode_rewards):
     episode_rewards[i] = smooth(episode_rewards[i])
 plot_over_time_multiple_subplots(n_policy, episode_rewards, save_path=f"{images_dir}/rewards.png", plot=args.plot)
+
+low = env.observation_space.low.astype(np.int32)
+high = env.observation_space.high.astype(np.int32)
+rows = high[1] - low[1]
+cols = high[0] - low[0]
+states = [[0.0] * cols for _ in range(rows)]
+plot_agent_actions_2d(
+    states,
+    agent,
+    n_action,
+    n_policy,
+    save_path=f"{images_dir}/actions.png",
+    plot=args.plot,
+    objective_labels=deep_sea_treasure_labels,
+    should_plot=lambda state: env.unwrapped._is_valid_state((state[1], state[0])),
+)
 
 env.close()
