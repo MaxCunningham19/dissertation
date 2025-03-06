@@ -5,9 +5,11 @@ from .DecayBoltzmann import DecayBoltzmann
 from .EpsilonGreedy import EpsilonGreedy
 from .DecayEpsilonGreedy import DecayEpsilonGreedy
 from .Pheromones import Pheromones
+from .DecayPheromones import DecayPheromones
+from .Counts import Counts
 
 
-def create_exploration_strategy(strategy_name: str, *args, **kwargs) -> ExplorationStrategy:
+def create_exploration_strategy(strategy_name: str, **kwargs) -> ExplorationStrategy:
     """Creates an instance of an exploration strategy given its name."""
 
     strategies = {
@@ -16,7 +18,9 @@ def create_exploration_strategy(strategy_name: str, *args, **kwargs) -> Explorat
         "epsilon": EpsilonGreedy,
         "decay_epsilon": DecayEpsilonGreedy,
         "pheromones": Pheromones,
+        "decay_pheromones": DecayPheromones,
         "greedy": Greedy,
+        "counts": Counts,
     }
 
     if strategy_name not in strategies:
@@ -25,7 +29,7 @@ def create_exploration_strategy(strategy_name: str, *args, **kwargs) -> Explorat
     if "state_map" in kwargs:
         kwargs["state_map"] = StateMapGenerator.get_function(kwargs["state_map"])
 
-    return strategies[strategy_name](*args, **kwargs)  # initialize with provided arguments
+    return strategies[strategy_name](**kwargs)  # initialize with provided arguments
 
 
 class StateMapGenerator:

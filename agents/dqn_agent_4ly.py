@@ -141,7 +141,6 @@ class DQN(object):
             self.optimizer.step()
 
             self.soft_update(self.policy_net, self.target_net, self.tau)
-            self.update_params()
         else:
             print("memory not big enough yet \n\n")
 

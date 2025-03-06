@@ -5,11 +5,16 @@ import torch
 
 
 class ExplorationStrategy(ABC):
+    def __init__(self, delay_updates=0, **kwargs):
+        super().__init__(**kwargs)
+        self.delay_updates = delay_updates
+        self.update_counts = 0
 
     def get_action(self, actions: np.ndarray | torch.Tensor, state=None):
         """
         Returns the index of the action
         """
+
         if isinstance(actions, torch.Tensor):
             if actions.is_cuda:
                 actions = actions.cpu()
@@ -27,8 +32,19 @@ class ExplorationStrategy(ABC):
         """
         pass
 
-    @abstractmethod
     def update_parameters(self):
+        """
+        Updates heuristic parameters
+        """
+        if self.update_counts < self.delay_updates:
+            self.force_update_parameters()
+            self.update_counts += 1
+            # print(f"Delaying update for {self.delay_updates - self.update_counts} more updates")
+            return
+        self._update_parameters()
+
+    @abstractmethod
+    def _update_parameters(self):
         """
         Updates heuristic parameters
         """
@@ -37,4 +53,10 @@ class ExplorationStrategy(ABC):
     @abstractmethod
     def info(self):
         """Returns the current parameters of the strategy"""
+        pass
+
+    def force_update_parameters(self):
+        """
+        Forces the update of the parameters
+        """
         pass

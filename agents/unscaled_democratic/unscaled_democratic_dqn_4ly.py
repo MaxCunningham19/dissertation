@@ -19,7 +19,7 @@ class UnscaledDemocraticDQN(AbstractAgent):
         num_policies,
         exploration_strategy: ExplorationStrategy,
         batch_size=1024,
-        memory_size=10000,
+        memory_size=100000,
         learning_rate=0.01,
         gamma=0.9,
         tau=0.001,
@@ -40,6 +40,8 @@ class UnscaledDemocraticDQN(AbstractAgent):
         self.human_preference = human_preference
         if self.human_preference is None or len(human_preference) != self.num_policies:
             self.human_preference = [1.0 / self.num_policies] * self.num_policies
+
+        print(f"Human preference: {self.human_preference}, input_preferences: {human_preference}")
 
         # Construct Agents for each policy
         self.agents: list[DQN] = []
@@ -68,12 +70,14 @@ class UnscaledDemocraticDQN(AbstractAgent):
 
     def get_action(self, x):
         action_advantages = np.array([0.0] * self.num_actions)
-
+        # print(f"\nState: {x}")
         for i, agent in enumerate(self.agents):
             q_values = np.array(agent.get_actions(x))
+            # print(f"Q values for policy {i}: {q_values}")
             preference_weighted_q_values = q_values * self.human_preference[i]
+            # print(f"Preference weighted Q values for policy {i}: {preference_weighted_q_values}")
             action_advantages = action_advantages + preference_weighted_q_values
-
+        # print(f"Action advantages: {action_advantages}\n")
         return self.exploration_strategy.get_action(action_advantages, x), {}
 
     def get_actions(self, x):
@@ -114,7 +118,6 @@ class UnscaledDemocraticDQN(AbstractAgent):
         """Train all Q-networks"""
         for i in range(self.num_policies):
             self.agents[i].train()  # agents update their internal parameters as they go
-        self.update_params()
 
     def update_params(self) -> None:
         """Update exploration rate"""

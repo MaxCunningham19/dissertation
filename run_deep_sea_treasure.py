@@ -1,5 +1,7 @@
 import warnings
 
+from utils.plotting import plot_agent_actions_2d_seperated
+
 warnings.filterwarnings("ignore")
 
 import gym
@@ -85,11 +87,11 @@ loss = np.array(loss).T
 plot_over_time_multiple_subplots(n_policy, loss, save_path=f"{images_dir}/loss.png", plot=args.plot)
 
 episode_rewards = np.array(episode_rewards).T
+plot_over_time_multiple_subplots(n_policy, episode_rewards, save_path=f"{images_dir}/true_rewards.png", plot=args.plot)
 window_size = 50
 smoothed_rewards = [None] * len(episode_rewards)
 for i, episode_reward_objective in enumerate(episode_rewards):
     smoothed_rewards[i] = smooth(episode_reward_objective, window_size)
-print(smoothed_rewards)
 plot_over_time_multiple_subplots(n_policy, smoothed_rewards, save_path=f"{images_dir}/rewards.png", plot=args.plot)
 
 low = env.observation_space.low.astype(np.int32)
@@ -107,5 +109,16 @@ plot_agent_actions_2d(
     objective_labels=deep_sea_treasure_labels,
     should_plot=lambda state: env.unwrapped._is_valid_state((state[1], state[0])),
 )
+
+plot_agent_actions_2d_seperated(
+    states,
+    agent,
+    n_action,
+    n_policy,
+    save_path=f"{images_dir}",
+    plot=args.plot,
+    should_plot=lambda state: env.unwrapped._is_valid_state((state[1], state[0])),
+)
+
 
 env.close()

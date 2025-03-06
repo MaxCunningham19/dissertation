@@ -12,12 +12,14 @@ class Pheromones(ExplorationStrategy):
     def __init__(
         self,
         pheromone_decay=0.5,
-        pheromone_inc=1.0,
+        pheromone_inc=2.0,
         alpha=1.0,
-        beta=1.0,
+        beta=2.0,
         state_map: Callable[[Any | None], Hashable] = lambda x: tuple(x),
         pheromone_min=MIN_PHEROMONE,
+        **kwargs
     ):
+        super().__init__(**kwargs)
         self.pheromone_decay = pheromone_decay
         self.pheromone_inc = pheromone_inc
         self.pheromone_min = max(NON_ZERO, pheromone_min)
@@ -41,12 +43,15 @@ class Pheromones(ExplorationStrategy):
 
         return action
 
-    def update_parameters(self):
+    def _update_parameters(self):
         for state in self.pheromones:
             pheromones = self.pheromones[state]
             for i in range(len(pheromones)):
                 pheromones[i] = max(self.pheromone_min, pheromones[i] * self.pheromone_decay)
             self.pheromones[state] = pheromones
+
+    def force_update_parameters(self):
+        self._update_parameters()
 
     def info(self):
         return self.pheromones, self.alpha, self.beta

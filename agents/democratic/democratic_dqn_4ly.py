@@ -125,7 +125,6 @@ class DemocraticDQN(AbstractAgent):
         """Train all Q-networks"""
         for i in range(self.num_policies):
             self.agents[i].train()  # agents update their internal parameters as they go
-        self.update_params()
 
     def update_params(self) -> None:
         """Update exploration rate"""

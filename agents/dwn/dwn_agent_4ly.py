@@ -182,7 +182,6 @@ class DWA(object):
             self.optimizer.step()
 
             self.soft_update(self.policy_net, self.target_net, self.tau)
-            self.update_params()
 
     def train_w(self):
         """Train the W-network"""
