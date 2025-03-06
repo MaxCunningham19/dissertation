@@ -1,3 +1,4 @@
 import envs.mountain_car
 import envs.deep_sea_treasure
 import envs.collaborative
+import envs.image_state_deep_sea_treasure

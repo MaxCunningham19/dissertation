@@ -96,3 +96,6 @@ class TestSimpleMOEnv(gym.Env, EzPickle):
         if self.viewer is not None:
             self.viewer.close()
             self.viewer = None
+
+    def _is_valid_state(self, state):
+        return state[0] >= 0 and state[0] < self.width and state[1] >= 0 and state[1] < self.height

@@ -1,5 +1,7 @@
 import numpy as np
 
+from utils.utils import softmax
+
 from .ExplorationStrategy import ExplorationStrategy
 
 MIN_TEMPERATURE = 1e-6  # Prevents divby zero
@@ -11,11 +13,10 @@ class Boltzmann(ExplorationStrategy):
         self.temperature = max(MIN_TEMPERATURE, temperature)
 
     def _get_action(self, actions: np.ndarray, state=None):
-        # The issue is we're not exponentiating the values
-        # Without exp(), dividing by temperature and subtracting max just makes larger values smaller
-        # and smaller values relatively larger, inverting the preferences
-        stable_exp = np.exp(actions / self.temperature)
-        stable_exp = stable_exp / np.sum(stable_exp)  # Normalize to get probabilities
+
+        dist_from_max = actions - np.max(actions)
+        e_x = np.exp((dist_from_max) / self.temperature)
+        stable_exp = e_x / np.sum(e_x)  # Normalize to get probabilities
         return np.random.choice(len(actions), p=stable_exp)
 
     def _update_parameters(self):

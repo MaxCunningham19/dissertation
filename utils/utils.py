@@ -49,7 +49,7 @@ def convert_to_num_if_possible(value: str):
     return value
 
 
-def softmax(x):
+def softmax(x) -> np.ndarray:
     """Applies the softmax function to a numpy array"""
     if isinstance(x, torch.Tensor):
         if x.is_cuda:

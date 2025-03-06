@@ -1,4 +1,4 @@
-from exploration_strategy import DecayEpsilonGreedy, ExplorationStrategy
+from exploration_strategy import Boltzmann, DecayBoltzmann, DecayEpsilonGreedy, EpsilonGreedy, ExplorationStrategy, Pheromones
 from agents.AbstractAgent import AbstractAgent
 from .dwn_agent_4ly import DWA
 
@@ -12,8 +12,8 @@ class DWL(AbstractAgent):
         num_policies,
         w_learning=True,
         batch_size=1024,
-        exploration_strategy: ExplorationStrategy = DecayEpsilonGreedy(epsilon=0.95, epsilon_decay=0.995, epsilon_min=0.25),
-        dwn_exploration_strategy: ExplorationStrategy = DecayEpsilonGreedy(epsilon=0.99, epsilon_decay=0.9995, epsilon_min=0.01),
+        exploration_strategy: ExplorationStrategy = DecayEpsilonGreedy(epsilon=0.95, epsilon_decay=0.995, epsilon_min=0.1),
+        dwn_exploration_strategy: ExplorationStrategy = DecayEpsilonGreedy(epsilon=0.95, epsilon_decay=0.9995, epsilon_min=0.2),
         memory_size=100000,
         learning_rate=0.001,
         gamma=0.9,
@@ -39,7 +39,7 @@ class DWL(AbstractAgent):
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.gamma = gamma
-        self.exploration_strategy = exploration_strategy
+        self.exploration_strategy = dwn_exploration_strategy
         self.memory_size = memory_size
 
         # Learning parameters for W learning net
@@ -55,7 +55,7 @@ class DWL(AbstractAgent):
                     input_shape=self.input_shape,
                     num_actions=self.num_actions,
                     batch_size=self.batch_size,
-                    exploration_strategy=self.dwn_exploration_strategy,
+                    exploration_strategy=exploration_strategy,
                     memory_size=self.memory_size,
                     learning_rate=self.learning_rate,
                     gamma=self.gamma,

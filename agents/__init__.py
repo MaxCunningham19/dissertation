@@ -4,3 +4,4 @@ from .dwn import DWL
 from .DDWN import BaseDDWN
 from .AbstractAgent import AbstractAgent
 from .utils import get_agent
+from .convolutional import CDWL
