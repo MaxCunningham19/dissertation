@@ -146,7 +146,7 @@ class DWA(object):
         else:
             state = x
         w_value = self.wnetwork_local.forward(state)
-        w_value = w_value.detach()[0].cpu().data.numpy()
+        w_value = w_value.detach()[0].cpu().data.numpy().flatten()
         w_value = w_value[0]
         return w_value
 

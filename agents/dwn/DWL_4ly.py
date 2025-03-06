@@ -1,4 +1,4 @@
-from exploration_strategy import ExplorationStrategy, Greedy
+from exploration_strategy import DecayEpsilonGreedy, ExplorationStrategy
 from agents.AbstractAgent import AbstractAgent
 from .dwn_agent_4ly import DWA
 
@@ -12,14 +12,19 @@ class DWL(AbstractAgent):
         num_policies,
         w_learning=True,
         batch_size=1024,
-        exploration_strategy: ExplorationStrategy = Greedy(),
-        dwn_exploration_strategy: ExplorationStrategy = Greedy(),
-        memory_size=10000,
-        learning_rate=0.01,
+        exploration_strategy: ExplorationStrategy = DecayEpsilonGreedy(epsilon=0.95, epsilon_decay=0.995, epsilon_min=0.25),
+        dwn_exploration_strategy: ExplorationStrategy = DecayEpsilonGreedy(epsilon=0.99, epsilon_decay=0.9995, epsilon_min=0.01),
+        memory_size=100000,
+        learning_rate=0.001,
         gamma=0.9,
         hidlyr_nodes=256,
         init_learn_steps_num=128,
+        beta_start=0.4,
+        beta_inc=1.002,
         device=None,
+        tau=0.001,
+        w_tau=0.001,
+        walpha=0.001,
     ):
 
         self.input_shape = input_shape
@@ -57,6 +62,11 @@ class DWL(AbstractAgent):
                     device=self.device,
                     hidlyr_nodes=hidlyr_nodes,
                     w_learning=self.w_learning,
+                    beta_start=beta_start,
+                    beta_inc=beta_inc,
+                    tau=tau,
+                    w_tau=w_tau,
+                    walpha=walpha,
                 )
             )
 
@@ -90,7 +100,7 @@ class DWL(AbstractAgent):
         """Train Q and W networks"""
         for i in range(self.num_policies):
             self.agents[i].train()
-            if self.init_learn_steps_count == self.init_learn_steps_num:  # we start training W-network with delay
+            if self.init_learn_steps_count >= self.init_learn_steps_num:  # we start training W-network with delay
                 self.agents[i].train_w()
         self.init_learn_steps_count += 1
 
@@ -121,3 +131,12 @@ class DWL(AbstractAgent):
             state_values.append(q_values)
 
         return state_values
+
+    def get_all_info(self, x):
+        """Get the weights for the given state"""
+        weights = []
+        q_values = []
+        for agent in self.agents:
+            weights.append(agent.get_w_value(x))
+            q_values.append(agent.get_actions(x))
+        return weights, q_values
