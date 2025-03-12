@@ -27,7 +27,7 @@ parser.add_argument("--plot", type=bool, default=False, help="whether to plot th
 parser.add_argument("--human_preference", type=float, nargs="+", default=None, help="the human preference")
 args = parser.parse_args()
 
-env_name = f"simplemoenv"
+env_name = f"mo-deep-sea-treasure-concave-v0"
 
 env = mo_gym.make(env_name, render_mode="rgb_array")
 n_state = env.observation_space.shape[0]
@@ -51,8 +51,8 @@ agent.load(args.path_to_load_model)
 
 low = env.observation_space.low.astype(np.int32)
 high = env.observation_space.high.astype(np.int32)
-rows = high[1] - low[1] + 1
-cols = high[0] - low[0] + 1
+rows = high[1] - low[1]
+cols = high[0] - low[0]
 states = [[0.0] * cols for _ in range(rows)]
 
 colors = plt.cm.viridis(np.linspace(0, 1, n_policy))

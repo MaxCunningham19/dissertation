@@ -161,23 +161,23 @@ class DWA(object):
     def train(self):
         """Train the Q-network"""
         if len(self.replayMemory) > self.batch_size:
-            (states, actions, rewards, next_states, probabilites, experiences_idx, dones) = self.replayMemory.sample()
+            (states, actions, rewards, next_states, probabilities, experiences_idx, dones) = self.replayMemory.sample()
+
             current_qs = self.policy_net(states).gather(1, actions)
             next_actions = self.policy_net(next_states).detach().max(1)[1].unsqueeze(1)
             max_next_qs = self.target_net(next_states).detach().gather(1, next_actions)
-            target_qs = rewards + self.gamma * max_next_qs
+            target_qs = rewards + self.gamma * max_next_qs * (1 - dones)
 
-            is_weights = np.power(probabilites * self.batch_size, -self.beta)
-            is_weights = torch.from_numpy(is_weights / np.max(is_weights)).float().to(self.device)
+            is_weights = np.power(probabilities * self.batch_size, -self.beta)
+            is_weights = torch.from_numpy(is_weights / is_weights.max()).float().to(self.device)
             loss = (target_qs - current_qs).pow(2) * is_weights
             loss = loss.mean()
-            # To track the loss over episode
+
             self.q_episode_loss.append(loss.detach().cpu().numpy())
 
             td_errors = (target_qs - current_qs).detach().cpu().numpy()
             self.replayMemory.update_priorities(experiences_idx, td_errors, self.per_epsilon)
-
-            self.policy_net.zero_grad()
+            self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
 
@@ -192,7 +192,7 @@ class DWA(object):
             current_qs = self.policy_net(states).gather(1, actions)
             next_actions = self.policy_net(next_states).detach().max(1)[1].unsqueeze(1)
             max_next_qs = self.target_net(next_states).detach().gather(1, next_actions)
-            target_qs = rewards + self.gamma * max_next_qs
+            target_qs = rewards + self.gamma * max_next_qs * (1 - dones)
 
             # Calculate the W-values, as proposed with Eq. (3) in "W-learning Competition among selfish Q-learners"
             current_w = self.wnetwork_local(states).detach()
