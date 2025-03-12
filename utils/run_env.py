@@ -34,6 +34,7 @@ def run_env(num_episodes: int, env: Env, agent: AbstractAgent, n_policy: int):
 
         if i % 10 == 0:
             print("Epsiode", i, episode_reward, loss_info, sum(episode_rewards[len(episode_rewards) - 50 :]) / 50, furthest_from_start)
+            furthest_from_start = [0, 0]
         agent.train()
         agent.update_params()
 

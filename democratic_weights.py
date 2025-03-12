@@ -24,6 +24,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--path_to_load_model", type=str, default=None, help="the path to load the model from")
 parser.add_argument("--plot", type=bool, default=False, help="whether to plot the results")
+parser.add_argument("--human_preference", type=float, nargs="+", default=None, help="the human preference")
 args = parser.parse_args()
 
 env_name = f"simplemoenv"
@@ -38,7 +39,12 @@ n_policy = env.unwrapped.reward_space.shape[0]
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 agent = UnscaledDemocraticDQN(
-    input_shape=env.observation_space.shape, num_actions=n_action, num_policies=n_policy, exploration_strategy=None, device=device
+    input_shape=env.observation_space.shape,
+    num_actions=n_action,
+    num_policies=n_policy,
+    exploration_strategy=None,
+    device=device,
+    human_preference=args.human_preference,
 )
 agent.load(args.path_to_load_model)
 

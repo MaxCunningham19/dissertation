@@ -1,4 +1,4 @@
-from exploration_strategy import Boltzmann, DecayBoltzmann, DecayEpsilonGreedy, EpsilonGreedy, ExplorationStrategy, Pheromones
+from exploration_strategy import DecayEpsilonGreedy, ExplorationStrategy
 from agents.AbstractAgent import AbstractAgent
 from .dwn_agent_4ly import DWA
 
@@ -13,7 +13,7 @@ class DWL(AbstractAgent):
         w_learning=True,
         batch_size=1024,
         exploration_strategy: ExplorationStrategy = DecayEpsilonGreedy(epsilon=0.95, epsilon_decay=0.995, epsilon_min=0.1),
-        dwn_exploration_strategy: ExplorationStrategy = DecayEpsilonGreedy(epsilon=0.95, epsilon_decay=0.9995, epsilon_min=0.2),
+        dwn_exploration_strategy: ExplorationStrategy = DecayEpsilonGreedy(epsilon=0.5, epsilon_decay=0.995, epsilon_min=0.01),
         memory_size=100000,
         learning_rate=0.001,
         gamma=0.9,

@@ -49,7 +49,7 @@ if interval == 0:
 
 env_name = f"mo-deep-sea-treasure-{args.treasure_type}-v0"
 
-env = mo_gym.make(env_name, render_mode="rgb_array")
+env = mo_gym.make(env_name, render_mode="rgb_array", max_episode_steps=args.max_episode_steps)
 n_state = env.observation_space.shape[0]
 n_action = env.action_space.n
 n_policy = env.unwrapped.reward_space.shape[0]
@@ -60,7 +60,9 @@ deep_sea_treasure_labels = ["treasure value", "time penalty"]
 # Setup agent
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 exploration_strategy = create_exploration_strategy(args.exploration, **extract_kwargs(args.exploration_kwargs))
-agent = agent(env.observation_space.shape, n_action, n_policy, exploration_strategy, device=device, **extract_kwargs(args.model_kwargs))
+agent = agent(
+    env.observation_space.shape, n_action, n_policy, exploration_strategy=exploration_strategy, device=device, **extract_kwargs(args.model_kwargs)
+)
 if args.path_to_load_model is not None and len(args.path_to_load_model) > 0:
     agent.load(args.path_to_load_model)
 

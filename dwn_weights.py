@@ -2,7 +2,6 @@ import warnings
 
 from matplotlib import pyplot as plt
 
-from exploration_strategy import Greedy
 from utils.plotting import plot_agent_actions_2d_seperated
 
 warnings.filterwarnings("ignore")
@@ -40,7 +39,7 @@ deep_sea_treasure_labels = ["treasure value", "time penalty"]
 # Setup agent
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-agent = DWL(input_shape=env.observation_space.shape, num_actions=n_action, num_policies=n_policy, exploration_strategy=Greedy(), device=device)
+agent = DWL(input_shape=env.observation_space.shape, num_actions=n_action, num_policies=n_policy, exploration_strategy=None, device=device)
 agent.load(args.path_to_load_model)
 
 
