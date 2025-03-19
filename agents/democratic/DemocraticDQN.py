@@ -1,13 +1,8 @@
-import math
 import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool2d, Module, Softmax, BatchNorm2d, Dropout
 
 from exploration_strategy import ExplorationStrategy
 from agents.AbstractAgent import AbstractAgent
-from .dqn_agent import DQN
+from ..dqn_agent import DQN
 
 
 class DemocraticDQN(AbstractAgent):
@@ -19,8 +14,8 @@ class DemocraticDQN(AbstractAgent):
         num_policies,
         exploration_strategy: ExplorationStrategy,
         batch_size=1024,
-        memory_size=10000,
-        learning_rate=0.01,
+        memory_size=100000,
+        learning_rate=0.001,
         gamma=0.9,
         tau=0.001,
         per_epsilon=0.001,
@@ -39,7 +34,9 @@ class DemocraticDQN(AbstractAgent):
         self.exploration_strategy = exploration_strategy
         self.human_preference = human_preference
         if self.human_preference is None or len(human_preference) != self.num_policies:
-            self.human_preference = [1.0 / self.num_policies] * self.num_policies
+            self.human_preference = [1.0] * self.num_policies
+
+        print(f"Human preference: {self.human_preference}, input_preferences: {human_preference}")
 
         # Construct Agents for each policy
         self.agents: list[DQN] = []
@@ -62,28 +59,13 @@ class DemocraticDQN(AbstractAgent):
                 )
             )
 
-    def get_status(self):
-        """Returns the status of the agents learning params etc"""
-        return ""
-
-    def softmax(self, x):
-        if isinstance(x, torch.Tensor):
-            if x.is_cuda:
-                x = x.cpu()
-            x = x.numpy()
-        x = np.asarray(x).flatten()
-        e_x = np.exp(x - np.max(x))
-        return e_x / e_x.sum()
-
     def get_action(self, x):
+        """Get the action from the democratic DQN"""
         action_advantages = np.array([0.0] * self.num_actions)
-
         for i, agent in enumerate(self.agents):
-            q_values = agent.get_actions(x)
-            scaled_q_values = self.softmax(q_values)
-            preference_weighted_scaled_q_values = scaled_q_values * self.human_preference[i]
-            action_advantages = action_advantages + preference_weighted_scaled_q_values
-
+            q_values = np.array(agent.get_actions(x))
+            preference_weighted_q_values = q_values * self.human_preference[i]
+            action_advantages = action_advantages + preference_weighted_q_values
         return self.exploration_strategy.get_action(action_advantages, x), {}
 
     def get_actions(self, x):
@@ -91,10 +73,9 @@ class DemocraticDQN(AbstractAgent):
         action_advantages = np.array([0.0] * self.num_actions)
 
         for i, agent in enumerate(self.agents):
-            q_values = agent.get_actions(x)
-            scaled_q_values = self.softmax(q_values)
-            preference_weighted_scaled_q_values = scaled_q_values * self.human_preference[i]
-            action_advantages = action_advantages + preference_weighted_scaled_q_values
+            q_values = np.array(agent.get_actions(x))
+            preference_weighted_q_values = q_values * self.human_preference[i]
+            action_advantages = action_advantages + preference_weighted_q_values
 
         return action_advantages
 

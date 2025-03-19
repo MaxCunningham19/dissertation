@@ -1,1 +1,1 @@
-from .democratic_dqn_4ly import DemocraticDQN
+from .DemocraticDQN import DemocraticDQN

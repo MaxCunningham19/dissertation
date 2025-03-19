@@ -1,17 +1,9 @@
-import random
-import math
 import numpy as np
-from collections import namedtuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool2d, Module, Softmax, BatchNorm2d, Dropout
-
 from exploration_strategy import ExplorationStrategy
-
-from ..ReplayBuffer import ReplayBuffer
-
-Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"))
+from .ReplayBuffer import ReplayBuffer
 
 
 class QN(nn.Module):
@@ -36,8 +28,7 @@ class QN(nn.Module):
         return x
 
 
-class DWA(object):
-
+class DQN(object):
     def __init__(
         self,
         input_shape,
@@ -54,9 +45,6 @@ class DWA(object):
         exploration_strategy: ExplorationStrategy | None = None,
         device=None,
         hidlyr_nodes=128,
-        w_learning=True,
-        w_tau=0.001,
-        walpha=0.001,
     ):
 
         self.input_shape = input_shape
@@ -75,9 +63,7 @@ class DWA(object):
         self.beta = beta_start
         self.beta_inc = beta_inc
 
-        self.replayMemory = ReplayBuffer(
-            action_size=self.num_actions, buffer_size=self.memory_size, batch_size=self.batch_size, seed=self.random_seed
-        )
+        self.replayMemory = ReplayBuffer(self.num_actions, self.memory_size, self.batch_size, self.random_seed)
 
         self.per_epsilon = per_epsilon
 
@@ -87,47 +73,18 @@ class DWA(object):
         self.target_net = QN(self.num_states, hidlyr_nodes, self.num_actions)
         self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=learning_rate)
 
-        # Learning parameters for W learning net
-        self.w_learning = w_learning
-
-        self.w_learning = w_learning
-        if self.w_learning:  # We only init the W-values if we need them, i.e., w_learning = True
-            self.wnetwork_local = QN(self.num_states, hidlyr_nodes, 1).to(device)
-            self.wnetwork_target = QN(self.num_states, hidlyr_nodes, 1).to(device)
-            self.optimizer_w = torch.optim.Adam(self.wnetwork_local.parameters(), lr=self.learning_rate)
-            # Init the W net learning parameters and replay buffer
-            self.memory_w = ReplayBuffer(
-                action_size=self.num_actions, buffer_size=self.memory_size, batch_size=self.batch_size, seed=self.random_seed
-            )
-            self.w_alpha = walpha
-            self.w_episode_loss = []
-            self.w_tau = w_tau
-
         if device is not None:
             self.device = device
             self.policy_net.to(device)
             self.target_net.to(device)
 
-    def get_action(self, x):
-        """Get the action for the given state"""
-        if type(x).__name__ == "ndarray":
-            state = torch.from_numpy(x).float().unsqueeze(0).to(self.device)
-        else:
-            state = x
-        a = self.policy_net.eval()
-        with torch.no_grad():
-            action_values = self.policy_net(state)
-
-        return self.exploration_strategy.get_action(action_values, state)
-
     def get_actions(self, x):
-        """Get the action for the given state"""
+        """Returns a list of actions and their associated q-values"""
         if type(x).__name__ == "ndarray":
             state = torch.from_numpy(x).float().unsqueeze(0).to(self.device)
         else:
             state = x
         a = self.policy_net.eval()
-        action_values = []
         with torch.no_grad():
             action_values = self.policy_net(state)
 
@@ -139,27 +96,25 @@ class DWA(object):
 
         return action_values.tolist()
 
-    def get_w_value(self, x):
-        """Get the W-value for the given state"""
+    def get_action(self, x, training=True):
+        """Nominate an action"""
         if type(x).__name__ == "ndarray":
             state = torch.from_numpy(x).float().unsqueeze(0).to(self.device)
         else:
             state = x
-        w_value = self.wnetwork_local.forward(state)
-        w_value = w_value.detach()[0].cpu().data.numpy().flatten()
-        w_value = w_value[0]
-        return w_value
+        a = self.policy_net.eval()
+        action_values = self.get_actions(x)
+        if training:
+            return self.exploration_strategy.get_action(action_values, state)
+        else:
+            return np.argmax(action_values)
 
     def store_memory(self, state, action, reward, next_state, done):
-        """Store the experience to the replay buffer"""
+        """Store memory in the PERBuffer"""
         self.replayMemory.add(state, action, reward, next_state, done)
 
-    def store_w_memory(self, s, a, r, s_, d):
-        """Store the experience to the W-learning replay buffer"""
-        self.memory_w.add(s, a, r, s_, d)
-
     def train(self):
-        """Train the Q-network"""
+        """Train the model from the ReplayBuffe then update parameters"""
         if len(self.replayMemory) > self.batch_size:
             (states, actions, rewards, next_states, probabilities, experiences_idx, dones) = self.replayMemory.sample()
 
@@ -183,72 +138,27 @@ class DWA(object):
 
             self.soft_update(self.policy_net, self.target_net, self.tau)
 
-    def train_w(self):
-        """Train the W-network"""
-        if len(self.memory_w) > self.batch_size:
-            (states, actions, rewards, next_states, probabilites, experiences_idx, dones) = self.memory_w.sample()
-
-            # Calculate the Q-values as in normal Q-learning
-            current_qs = self.policy_net(states).gather(1, actions)
-            next_actions = self.policy_net(next_states).detach().max(1)[1].unsqueeze(1)
-            max_next_qs = self.target_net(next_states).detach().gather(1, next_actions)
-            target_qs = rewards + self.gamma * max_next_qs * (1 - dones)
-
-            # Calculate the W-values, as proposed with Eq. (3) in "W-learning Competition among selfish Q-learners"
-            current_w = self.wnetwork_local(states).detach()
-            target_w = (1 - self.w_alpha) * current_w + self.w_alpha * (current_qs - target_qs)
-
-            is_weights = np.power(probabilites * self.batch_size, -self.beta)
-            is_weights = torch.from_numpy(is_weights / np.max(is_weights)).float().to(self.device)
-            w_loss = (target_w - current_w).pow(2) * is_weights
-            w_loss = w_loss.mean()
-            # To track the loss over episode
-            self.w_episode_loss.append(w_loss.detach().cpu().numpy())
-
-            td_errors = (target_qs - current_qs).detach().cpu().numpy()
-            self.memory_w.update_priorities(experiences_idx, td_errors, self.per_epsilon)
-
-            self.wnetwork_local.zero_grad()
-            w_loss.backward()
-            self.optimizer_w.step()
-            # ------------------- update target network ------------------- #
-            self.soft_update(self.wnetwork_local, self.wnetwork_target, self.w_tau)
-
     def soft_update(self, originNet, targetNet, tau):
         """Update the target network towards the online network"""
         for target_param, local_param in zip(targetNet.parameters(), originNet.parameters()):
             target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
 
     def update_params(self):
-        """Update parameters"""
+        """Update model parameters"""
         self.beta = min(1.0, self.beta_inc * self.beta)
         self.exploration_strategy.update_parameters()
 
     def save_net(self, path):
-        """Save the Q-network"""
+        """Save the online network"""
         torch.save(self.policy_net.state_dict(), path)
 
-    def save_w_net(self, path):
-        """Save the W-network"""
-        torch.save(self.wnetwork_local.state_dict(), path)
-
     def load_net(self, path):
-        """Load the Q-network"""
+        """Load the network"""
         self.policy_net.load_state_dict(torch.load(path)), self.target_net.load_state_dict(torch.load(path))
         self.policy_net.eval(), self.target_net.eval()
 
-    def load_w_net(self, path):
-        """Load the W-network"""
-        if self.w_learning:
-            self.wnetwork_local.load_state_dict(torch.load(path)), self.wnetwork_target.load_state_dict(torch.load(path))
-            self.wnetwork_local.eval(), self.wnetwork_target.eval()
-
-    def collect_loss_info(self):
-        """Collect the loss information"""
+    def collect_loss_info(self) -> float:
+        """Get current loss value"""
         avg_q_loss = np.average(self.q_episode_loss)
-        avg_w_loss = 0
         self.q_episode_loss = []
-        if self.w_learning:
-            avg_w_loss = np.average(self.w_episode_loss)
-            self.w_episode_loss = []
-        return avg_q_loss, avg_w_loss
+        return avg_q_loss
