@@ -3,6 +3,7 @@ import warnings
 from matplotlib import pyplot as plt
 
 from utils.plotting import plot_agent_actions_2d_seperated
+from utils.utils import softmax
 
 warnings.filterwarnings("ignore")
 
@@ -86,6 +87,7 @@ for y, row in enumerate(states):
         if env.unwrapped._is_valid_state((idx[1], idx[0])):
             q_valuess = agent.get_objective_info(idx)
             for i, q_values in enumerate(q_valuess):
+                q_values = softmax(q_values)
                 q_values = [x * args.human_preference[i] for x in q_values]
                 offset = negative_offset + (i) * (bar_width_single)
                 bar = current_ax.bar(xs + offset, q_values, width=bar_width_single, label=objective_labels[i], color=colors[i], alpha=0.7)
@@ -122,6 +124,7 @@ for y, row in enumerate(states):
         if env.unwrapped._is_valid_state((idx[1], idx[0])):
             q_valuess = np.array(agent.get_objective_info(idx))
             for i, q_values in enumerate(q_valuess):
+                q_values = softmax(q_values)
                 q_valuess[i] = [x * args.human_preference[i] for x in q_values]
             # Set background color based on max weight
             sum_ = np.array([0.0] * n_action)

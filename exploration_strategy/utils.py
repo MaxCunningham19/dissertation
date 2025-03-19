@@ -7,6 +7,7 @@ from .DecayEpsilonGreedy import DecayEpsilonGreedy
 from .Pheromones import Pheromones
 from .DecayPheromones import DecayPheromones
 from .Counts import Counts
+from .GrowPheromones import GrowPheromones
 
 
 def create_exploration_strategy(strategy_name: str, **kwargs) -> ExplorationStrategy:
@@ -21,6 +22,7 @@ def create_exploration_strategy(strategy_name: str, **kwargs) -> ExplorationStra
         "decay_pheromones": DecayPheromones,
         "greedy": Greedy,
         "counts": Counts,
+        "grow_pheromones": GrowPheromones,
     }
 
     if strategy_name not in strategies:

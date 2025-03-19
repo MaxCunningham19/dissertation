@@ -4,3 +4,5 @@ videos/demo
 __pycache__
 videos/
 results/
+images/
+models/

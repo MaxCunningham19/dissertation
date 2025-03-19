@@ -17,7 +17,7 @@ class Pheromones(ExplorationStrategy):
         beta=2.0,
         state_map: Callable[[Any | None], Hashable] = lambda x: tuple(x),
         pheromone_min=MIN_PHEROMONE,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.pheromone_decay = pheromone_decay
@@ -36,6 +36,9 @@ class Pheromones(ExplorationStrategy):
             self.pheromones[state] = np.array([self.pheromone_min] * len(actions))
         else:
             pheromones_state = np.array(self.pheromones[state])
+            if not self.alpha.is_integer():
+                actions = softmax(actions)
+
             probabilities = softmax(((actions) ** self.alpha) / ((pheromones_state) ** self.beta))
             action = np.random.choice(len(actions), p=probabilities)
 

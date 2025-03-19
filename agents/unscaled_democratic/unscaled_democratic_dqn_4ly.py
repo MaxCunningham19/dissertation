@@ -20,7 +20,7 @@ class UnscaledDemocraticDQN(AbstractAgent):
         exploration_strategy: ExplorationStrategy,
         batch_size=1024,
         memory_size=100000,
-        learning_rate=0.01,
+        learning_rate=0.001,
         gamma=0.9,
         tau=0.001,
         per_epsilon=0.001,
@@ -39,7 +39,7 @@ class UnscaledDemocraticDQN(AbstractAgent):
         self.exploration_strategy = exploration_strategy
         self.human_preference = human_preference
         if self.human_preference is None or len(human_preference) != self.num_policies:
-            self.human_preference = [1.0 / self.num_policies] * self.num_policies
+            self.human_preference = [1.0] * self.num_policies
 
         print(f"Human preference: {self.human_preference}, input_preferences: {human_preference}")
 

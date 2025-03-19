@@ -18,12 +18,12 @@ from utils.constants import MODELS_DIR, RESULTS_DIR
 from exploration_strategy.utils import create_exploration_strategy
 from utils import extract_kwargs, build_parser, run_env, plot_agent_actions_2d, plot_over_time_multiple_subplots, smooth, kwargs_to_string
 from agents import get_agent, DWL
-from utils import generate_file_structure, kwargs_to_string
 import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--path_to_load_model", type=str, default=None, help="the path to load the model from")
 parser.add_argument("--plot", type=bool, default=False, help="whether to plot the results")
+parser.add_argument("--human_preference", type=float, nargs="+", default=None, help="the human preference")
 args = parser.parse_args()
 
 env_name = f"mo-deep-sea-treasure-concave-v0"
@@ -79,6 +79,8 @@ for y, row in enumerate(states):
         idx = np.array([x, y])
         if env.unwrapped._is_valid_state((idx[1], idx[0])):
             weights, q_valuess = agent.get_all_info(idx)
+            for i, weight in enumerate(weights):
+                weights[i] = weight * args.human_preference[i]
             for i, q_values in enumerate(q_valuess):
                 offset = negative_offset + (i) * (bar_width_single)
                 bar = current_ax.bar(xs + offset, q_values, width=bar_width_single, label=objective_labels[i], color=colors[i], alpha=0.7)
@@ -114,6 +116,8 @@ for y, row in enumerate(states):
         idx = np.array([x, y])
         if env.unwrapped._is_valid_state((idx[1], idx[0])):
             weights, q_values = agent.get_all_info(idx)
+            for i, weight in enumerate(weights):
+                weights[i] = weight * args.human_preference[i]
             # Set background color based on max weight
             max_weight_idx = np.argmax(weights)
             current_ax.set_facecolor(colors[max_weight_idx])

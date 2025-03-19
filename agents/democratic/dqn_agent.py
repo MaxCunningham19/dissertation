@@ -123,7 +123,7 @@ class DQN(object):
             max_next_qs = self.target_net(next_states).detach().gather(1, next_actions)
             target_qs = rewards + self.gamma * max_next_qs * (1 - dones)
 
-            is_weights = np.power(probabilities * len(self.replayMemory), -self.beta)
+            is_weights = np.power(probabilities * self.batch_size, -self.beta)
             is_weights = torch.from_numpy(is_weights / is_weights.max()).float().to(self.device)
             loss = (target_qs - current_qs).pow(2) * is_weights
             loss = loss.mean()
