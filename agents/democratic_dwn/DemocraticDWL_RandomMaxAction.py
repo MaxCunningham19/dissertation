@@ -9,7 +9,7 @@ class DemocraticDWL_RandomMaxAction(DemocraticDWL):
         actions_values = np.array([0.0] * self.num_actions)
         max_actions = []
         for q_agent, w_agent in self.agents:
-            q_values = q_agent.get_actions(x)
+            q_values = np.array(q_agent.get_actions(x))
             max_actions.append(np.argmax(q_values))
             w_value = w_agent.get_value(x)
             actions_values = actions_values + q_values * w_value
