@@ -42,7 +42,7 @@ def plot_agent_actions_2d(
         objective_labels = [f"objective {i+1}" for i in range(n_policy)]
 
     for y, row in enumerate(states):
-        for x, value in enumerate(row):
+        for x, state in enumerate(row):
             # Get the correct axis based on whether we have a single subplot or multiple
             current_ax = axes[y * len(states[0]) + x]
 
@@ -55,8 +55,8 @@ def plot_agent_actions_2d(
                 current_ax.set_xlabel(f"{x}")
 
             idx = np.array([x, y])
-            if should_plot(idx):
-                agent_info = agent.get_objective_info(idx)
+            if should_plot(state):
+                agent_info = agent.get_objective_info(state)
                 for i, info in enumerate(agent_info):
                     advantages = info - np.mean(info)
                     soft_array = softmax(advantages)
@@ -128,7 +128,7 @@ def plot_agent_actions_2d_seperated(
         else:
             axes = axes.flatten()
         for y, row in enumerate(states):
-            for x, value in enumerate(row):
+            for x, state in enumerate(row):
                 # Get the correct axis based on whether we have a single subplot or multiple
                 current_ax = axes[y * len(states[0]) + x]
 
@@ -141,8 +141,8 @@ def plot_agent_actions_2d_seperated(
                     current_ax.set_xlabel(f"{x}")
 
                 idx = np.array([x, y])
-                if should_plot(idx):
-                    agent_info = agent.get_objective_info(idx)
+                if should_plot(state):
+                    agent_info = agent.get_objective_info(state)
                     info = agent_info[i]
                     bar = current_ax.bar(xs, info, width=bar_width, color=colors[i], alpha=0.7)
                     for rect in bar:
@@ -161,7 +161,7 @@ def plot_agent_actions_2d_seperated(
     else:
         axes = axes.flatten()
     for y, row in enumerate(states):
-        for x, value in enumerate(row):
+        for x, state in enumerate(row):
             # Get the correct axis based on whether we have a single subplot or multiple
             current_ax = axes[y * len(states[0]) + x]
             current_ax.set_xticks([])
@@ -171,8 +171,8 @@ def plot_agent_actions_2d_seperated(
             if y == len(states) - 1:
                 current_ax.set_xlabel(f"{x}")
             idx = np.array([x, y])
-            if should_plot(idx):
-                agent_info = agent.get_objective_info(idx)
+            if should_plot(state):
+                agent_info = agent.get_objective_info(state)
                 info = np.array([0.0] * n_action)
                 for i in range(n_policy):
                     info = info + np.array(agent_info[i])
@@ -183,5 +183,60 @@ def plot_agent_actions_2d_seperated(
     plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
     if save_path is not None:
         plt.savefig(f"{save_path}/summed_q_values.png", dpi=500)
+    if plot:
+        plt.show()
+
+
+def plot_agent_w_values(
+    states: list[list],
+    w_values: dict[tuple[int, int], dict[int, list[float]]],
+    n_policy,
+    save_path: str = None,
+    plot: bool = False,
+    should_plot: lambda state: bool = lambda state: True,
+    objective_labels: list[str] | None = None,
+):
+    """Plots a grid of line charts of the w_values for each state over time"""
+    if len(states) <= 0 or n_policy <= 0:
+        return
+
+    if objective_labels is None:
+        objective_labels = [f"objective {i}" for i in range(n_policy)]
+
+    colors = plt.cm.viridis(np.linspace(0, 1, n_policy + 1))
+    lines = []
+    labels = []
+
+    fig, axes = plt.subplots(len(states), len(states[0]))
+    if not hasattr(axes, "__len__"):
+        axes = [axes]
+    else:
+        axes = axes.flatten()
+    for y, row in enumerate(states):
+        for x, state in enumerate(row):
+            # Get the correct axis based on whether we have a single subplot or multiple
+            current_ax = axes[y * len(states[0]) + x]
+            current_ax.set_xticks([])
+            current_ax.set_yticks([])
+            if x == 0:
+                current_ax.set_ylabel(f"{y}")
+            if y == len(states) - 1:
+                current_ax.set_xlabel(f"{x}")
+            idx = np.array([x, y])
+            w_values_dict = w_values.get((y, x), {})
+            if should_plot(state):
+                for i in range(n_policy):
+                    if i in w_values_dict and len(w_values_dict[i]) > 0:
+                        w_valuez = w_values_dict[i]
+                        xs = np.arange(len(w_valuez))
+                        line = current_ax.plot(xs, w_valuez, color=colors[i], alpha=0.7, label=objective_labels[i])
+                        if i >= len(lines):  # Only add to legend once per policy
+                            lines.append(line[0])
+                            labels.append(objective_labels[i])
+
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.2, hspace=0.3)
+    fig.legend(lines, labels, loc="lower center", ncol=n_policy, bbox_to_anchor=(0.5, 0.02), fontsize=8)
+    if save_path is not None:
+        plt.savefig(f"{save_path}/w_values.png", dpi=500, bbox_inches="tight")
     if plot:
         plt.show()

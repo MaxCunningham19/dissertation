@@ -1,7 +1,8 @@
 import copy
 import os
 
-from exploration_strategy import DecayEpsilonGreedy, ExplorationStrategy
+from exploration_strategy.DecayEpsilonGreedy import DecayEpsilonGreedy
+from exploration_strategy import ExplorationStrategy
 from agents.AbstractAgent import AbstractAgent
 from ..dwn_agent import DWN
 from ..dqn_agent import DQN
@@ -27,10 +28,13 @@ class DWL(AbstractAgent):
         device=None,
         tau=0.001,
         w_tau=0.001,
-        walpha=0.001,
+        w_alpha=0.001,
+        per_epsilon=0.001,
         seed=404,
+        q_learning=True,
+        w_learning=True,
     ):
-
+        print(f"Initializing DWL with {exploration_strategy} and {w_exploration_strategy}")
         self.input_shape = input_shape
         self.num_actions = num_actions
         self.num_policies = num_policies  # The number of policies is the number of
@@ -39,7 +43,10 @@ class DWL(AbstractAgent):
         self.init_learn_steps_num = init_learn_steps_num
         self.device = device
         self.seed = seed
+        self.q_learning = q_learning
+        self.w_learning = w_learning
 
+        print(f"Initializing DWL with q_learning: {self.q_learning} and w_learning: {self.w_learning}")
         # Learning parameters for DQN agents
         self.batch_size = batch_size
         self.learning_rate = learning_rate
@@ -49,42 +56,27 @@ class DWL(AbstractAgent):
 
         # Construct Agents for each policy
 
-        self.agents: list[tuple[DQN, DWN]] = []
+        self.agents: list[DWN] = []
 
         for i in range(self.num_policies):
             self.agents.append(
-                (
-                    DQN(
-                        input_shape=self.input_shape,
-                        num_actions=self.num_actions,
-                        batch_size=self.batch_size,
-                        tau=tau,
-                        memory_size=self.memory_size,
-                        learning_rate=self.learning_rate,
-                        gamma=self.gamma,
-                        per_epsilon=0.001,
-                        beta_start=beta_start,
-                        beta_inc=beta_inc,
-                        exploration_strategy=copy.deepcopy(exploration_strategy),  # each dqn has their own state
-                        device=self.device,
-                        hidlyr_nodes=hidlyr_nodes,
-                    ),
-                    DWN(
-                        input_shape=self.input_shape,
-                        batch_size=self.batch_size,
-                        num_actions=self.num_actions,
-                        tau=w_tau,
-                        memory_size=self.memory_size,
-                        learning_rate=self.learning_rate,
-                        alpha=walpha,
-                        gamma=self.gamma,
-                        per_epsilon=0.001,
-                        beta_start=beta_start,
-                        beta_inc=beta_inc,
-                        seed=self.seed,
-                        device=self.device,
-                        hidlyr_nodes=hidlyr_nodes,
-                    ),
+                DWN(
+                    input_shape=self.input_shape,
+                    num_actions=self.num_actions,
+                    batch_size=self.batch_size,
+                    tau=tau,
+                    memory_size=self.memory_size,
+                    learning_rate=self.learning_rate,
+                    gamma=self.gamma,
+                    per_epsilon=per_epsilon,
+                    beta_start=beta_start,
+                    beta_inc=beta_inc,
+                    seed=self.seed,
+                    exploration_strategy=exploration_strategy,
+                    device=self.device,
+                    hidlyr_nodes=hidlyr_nodes,
+                    w_tau=w_tau,
+                    w_alpha=w_alpha,
                 )
             )
 
@@ -92,9 +84,9 @@ class DWL(AbstractAgent):
         """Get the action nomination for the given state"""
         nominated_actions = []
         w_values = []
-        for q_agent, w_agent in self.agents:
-            nominated_actions.append(q_agent.get_action(x))
-            w_values.append(w_agent.get_value(x))
+        for agent in self.agents:
+            nominated_actions.append(agent.get_action(x))
+            w_values.append(agent.get_w_value(x))
 
         policy_sel = self.w_exploration_strategy.get_action(w_values, x)
         sel_action = nominated_actions[policy_sel]
@@ -102,54 +94,54 @@ class DWL(AbstractAgent):
 
     def store_memory(self, s, a, rewards, s_, d, info: dict):
         for i in range(self.num_policies):
-            q_agent, w_agent = self.agents[i]
-            q_agent.store_memory(s, a, rewards[i], s_, d)
-            if i != info["policy_sel"]:  # Do not store experience of the policy we selected
-                w_agent.store_memory(s, a, rewards[i], s_, d)
+            agent = self.agents[i]
+            if self.q_learning:
+                agent.store_memory(s, a, rewards[i], s_, d)
+            if self.w_learning and i != info["policy_sel"]:  # Do not store experience of the policy we selected
+                agent.store_w_memory(s, a, rewards[i], s_, d)
 
     def get_loss_values(self) -> list[tuple[float, ...]]:
         """Get the loss values for Q and W"""
         losses: list[tuple[float, ...]] = []
-        for q_agent, w_agent in self.agents:
-            q_loss, w_loss = q_agent.collect_loss_info(), w_agent.collect_loss_info()
-            losses.append((q_loss, w_loss))
+        for agent in self.agents:
+            losses.append(agent.collect_loss_info())
         return losses
 
     def train(self) -> None:
         """Train Q and W networks"""
-        for q_agent, w_agent in self.agents:
-            q_agent.train()
-            if self.init_learn_steps_count >= self.init_learn_steps_num:  # we start training W-network with delay
-                w_agent.train()
+        for agent in self.agents:
+            if self.q_learning:
+                agent.train()
+            if self.w_learning and self.init_learn_steps_count >= self.init_learn_steps_num:  # we start training W-network with delay
+                agent.train_w()
         self.init_learn_steps_count += 1
 
     def update_params(self):
         """Update parameters for self and all agents"""
-        for q_agent, w_agent in self.agents:
-            q_agent.update_params()
-            w_agent.update_params()
+        for agent in self.agents:
+            agent.update_params()
         self.w_exploration_strategy.update_parameters()
 
     def save(self, path):
         """Save trained Q-networks and W-networks to file"""
-        for i, (q_agent, w_agent) in enumerate(self.agents):
-            q_agent.save_net(path + "Q" + str(i) + ".pt")
-            w_agent.save_net(path + "W" + str(i) + ".pt")
+        for i, agent in enumerate(self.agents):
+            agent.save_net(path + "Q" + str(i) + ".pt")
+            agent.save_w_net(path + "W" + str(i) + ".pt")
 
     def load(self, path):
         """Load the pre-trained Q-networks and W-networks from file, if they exist"""
-        for i, (q_agent, w_agent) in enumerate(self.agents):
+        for i, agent in enumerate(self.agents):
             if os.path.exists(path + "Q" + str(i) + ".pt"):
-                q_agent.load_net(path + "Q" + str(i) + ".pt")
+                agent.load_net(path + "Q" + str(i) + ".pt")
             if os.path.exists(path + "W" + str(i) + ".pt"):
-                w_agent.load_net(path + "W" + str(i) + ".pt")
+                agent.load_w_net(path + "W" + str(i) + ".pt")
 
     def get_objective_info(self, x):
         """This is used to get info from each agent regarding the state x"""
         state_values = []
 
-        for q_agent, _ in self.agents:
-            q_values = q_agent.get_actions(x)
+        for agent in self.agents:
+            q_values = agent.get_actions(x)
             state_values.append(q_values)
 
         return state_values
@@ -158,7 +150,14 @@ class DWL(AbstractAgent):
         """Get the weights for the given state"""
         weights = []
         q_values = []
-        for q_agent, w_agent in self.agents:
-            weights.append(w_agent.get_value(x))
-            q_values.append(q_agent.get_actions(x))
+        for agent in self.agents:
+            weights.append(agent.get_w_value(x))
+            q_values.append(agent.get_actions(x))
         return weights, q_values
+
+    def get_w_values(self, x):
+        """Get the weights for the given state"""
+        w_values = []
+        for agent in self.agents:
+            w_values.append(agent.get_w_value(x))
+        return w_values

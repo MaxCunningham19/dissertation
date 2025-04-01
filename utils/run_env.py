@@ -16,17 +16,18 @@ def run_env(num_episodes: int, env: Env, agent: AbstractAgent, n_policy: int):
 
         obs, _ = env.reset()
         while not (done or truncated):
+
             action, info = agent.get_action(obs)
             obs_, reward, done, truncated, _ = env.step(action)
             state_counts[tuple(obs)] = state_counts.get(tuple(obs), 0) + 1
             agent.store_memory(obs, action, reward, obs_, done, info)
+            print(obs, action, reward, obs_, done)
             obs = obs_
 
             if obs[0] + obs[1] > furthest_from_start[0] + furthest_from_start[1]:
                 furthest_from_start = obs
 
             episode_reward = episode_reward + np.array(reward)
-
         episode_rewards.append(episode_reward)
         loss_info = agent.get_loss_values()
         loss.append(loss_info)

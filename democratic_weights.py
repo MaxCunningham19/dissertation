@@ -17,7 +17,7 @@ import envs  # This imports all the environments
 from utils.constants import MODELS_DIR, RESULTS_DIR
 from exploration_strategy.utils import create_exploration_strategy
 from utils import extract_kwargs, build_parser, run_env, plot_agent_actions_2d, plot_over_time_multiple_subplots, smooth, kwargs_to_string
-from agents import get_agent, DWL, UnscaledDemocraticDQN
+from agents import get_agent, DWL, DemocraticDQN
 from utils import generate_file_structure, kwargs_to_string
 import argparse
 
@@ -25,6 +25,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--path_to_load_model", type=str, default=None, help="the path to load the model from")
 parser.add_argument("--plot", type=bool, default=False, help="whether to plot the results")
 parser.add_argument("--human_preference", type=float, nargs="+", default=None, help="the human preference")
+parser.add_argument("--actions", type=str, nargs="+", default=None, help="the actions to plot")
 args = parser.parse_args()
 
 env_name = f"mo-deep-sea-treasure-concave-v0"
@@ -38,11 +39,11 @@ n_policy = env.unwrapped.reward_space.shape[0]
 # Setup agent
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-agent = UnscaledDemocraticDQN(
+agent = DemocraticDQN(
     input_shape=env.observation_space.shape,
     num_actions=n_action,
     num_policies=n_policy,
-    exploration_strategy=None,
+    exploration_strategy=create_exploration_strategy("greedy"),
     device=device,
     human_preference=args.human_preference,
 )
@@ -72,8 +73,8 @@ legend = {}
 legend_set = False
 
 objective_labels = [f"objective {i+1}" for i in range(n_policy)]
-for y, row in enumerate(states):
-    for x, value in enumerate(row):
+for x, row in enumerate(states):
+    for y, value in enumerate(row):
         # Get the correct axis based on whether we have a single subplot or multiple
         current_ax = axes[y * len(states[0]) + x]
         current_ax.set_xticks([])
@@ -83,8 +84,10 @@ for y, row in enumerate(states):
         if y == len(states) - 1:
             current_ax.set_xlabel(f"{x}")
         idx = np.array([x, y])
-        if env.unwrapped._is_valid_state((idx[1], idx[0])):
-            q_valuess = agent.get_objective_info(idx)
+        state = np.array([idx[1], idx[0]])
+        if env.unwrapped._is_valid_state(state):
+            q_valuess = agent.get_objective_info(state)
+            action, _ = agent.get_action(state)
             for i, q_values in enumerate(q_valuess):
                 q_values = [x * args.human_preference[i] for x in q_values]
                 offset = negative_offset + (i) * (bar_width_single)
@@ -109,8 +112,8 @@ if not hasattr(axes, "__len__"):
 else:
     axes = axes.flatten()
 bar_width = 0.2
-for y, row in enumerate(states):
-    for x, value in enumerate(row):
+for x, row in enumerate(states):
+    for y, value in enumerate(row):
         current_ax = axes[y * len(states[0]) + x]
         current_ax.set_xticks([])
         current_ax.set_yticks([])
@@ -119,7 +122,8 @@ for y, row in enumerate(states):
         if y == len(states) - 1:
             current_ax.set_xlabel(f"{x}")
         idx = np.array([x, y])
-        if env.unwrapped._is_valid_state((idx[1], idx[0])):
+        state = np.array([idx[1], idx[0]])
+        if env.unwrapped._is_valid_state((state)):
             q_valuess = np.array(agent.get_objective_info(idx))
             for i, q_values in enumerate(q_valuess):
                 q_valuess[i] = [x * args.human_preference[i] for x in q_values]
@@ -142,19 +146,19 @@ for y, row in enumerate(states):
             # Add bar chart of proportions
             xs = np.arange(n_policy)
             bars = current_ax.bar(xs, q_valuess[:, max_weight_idx], width=bar_width, color="grey", alpha=0.7)
-            color = "white" if max_proportion_policy > len(colors) / 2 else "black"
+            color = "white" if max_proportion_policy == 0 else "black"
+            action, _ = agent.get_action(state)  # Get action before using it
+            current_ax.text(0.5, 0.5, f"{args.actions[action]}", ha="center", va="center", fontsize=8, transform=current_ax.transAxes, color=color)
             for i, rect in enumerate(bars):
                 legend[objective_labels[i]] = rect
                 height = rect.get_height()
+                action, _ = agent.get_action(idx)
                 current_ax.text(rect.get_x() + rect.get_width() / 2.0, height, f"{height:.2f}", ha="center", va="bottom", fontsize=3, color=color)
-            # Add text showing the max proportion
-            print(f"proportions[max_proportion_policy, max_weight_idx]: {q_valuess[max_proportion_policy, max_weight_idx]}")
-            current_ax.set_title(f"{q_valuess[max_proportion_policy, max_weight_idx]:.4f}-{max_weight_idx}", ha="center", va="top", fontsize=4, pad=1)
 
 for i in range(len(colors)):
     legend[f"objective {i+1}"] = plt.Rectangle((0, 0), 1, 1, color=colors[i])
 
-plt.subplots_adjust(left=0.02, right=0.98, top=0.98, bottom=0.13, wspace=0.25, hspace=0.25)
+plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
 plt.figlegend(legend.values(), legend.keys(), loc="lower center", ncol=n_policy, bbox_to_anchor=(0.5, 0.02), fontsize=8)
 plt.savefig(f"./demo_objective_weights.png", dpi=500)
 if args.plot:
@@ -162,3 +166,40 @@ if args.plot:
 
 plt.close()
 env.close()
+
+if args.actions:
+    colors = plt.cm.viridis(np.linspace(0, 1, n_policy))
+    legend = {}
+    fig, axes = plt.subplots(len(states), len(states[0]))
+    if not hasattr(axes, "__len__"):
+        axes = [axes]
+    else:
+        axes = axes.flatten()
+    bar_width = 0.2
+    for y, row in enumerate(states):
+        for x, value in enumerate(row):
+            current_ax = axes[y * len(states[0]) + x]
+            current_ax.set_xticks([])
+            current_ax.set_yticks([])
+            if x == 0:
+                current_ax.set_ylabel(f"{y}")
+            if y == len(states) - 1:
+                current_ax.set_xlabel(f"{x}")
+            idx = np.array([x, y])
+            state = np.array([idx[1], idx[0]])
+            if env.unwrapped._is_valid_state(state):
+                action, _ = agent.get_action(state)
+                print(f"action: {action}")
+                current_ax.text(0.5, 0.5, f"{args.actions[action]}", ha="center", va="center", fontsize=8)
+
+    for i in range(len(colors)):
+        legend[f"objective {i+1}"] = plt.Rectangle((0, 0), 1, 1, color=colors[i])
+
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
+    plt.figlegend(legend.values(), legend.keys(), loc="lower center", ncol=n_policy, bbox_to_anchor=(0.5, 0.02), fontsize=8)
+    plt.savefig(f"./demo_objective_actions.png", dpi=500)
+    if args.plot:
+        plt.show()
+
+    plt.close()
+    env.close()

@@ -17,6 +17,8 @@ class GrowPheromones(Pheromones):
         pheromone_min=MIN_PHEROMONE,
         alpha_max=5.0,
         alpha_growth=1.01,
+        beta_decay=0.99,
+        beta_min=1.0,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -25,13 +27,16 @@ class GrowPheromones(Pheromones):
         self.pheromone_min = max(NON_ZERO, pheromone_min)
         self.pheromones = {}
         self.state_map = state_map
+        self.beta_decay = beta_decay
         self.alpha = alpha
         self.beta = beta
         self.alpha_max = alpha_max
         self.alpha_growth = alpha_growth
+        self.beta_min = beta_min
 
     def _update_parameters(self):
         self.alpha = min(self.alpha * self.alpha_growth, self.alpha_max)
+        self.beta = max(self.beta * self.beta_decay, self.beta_min)
         self.force_update_parameters()
 
     def force_update_parameters(self):

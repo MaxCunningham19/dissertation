@@ -24,6 +24,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--path_to_load_model", type=str, default=None, help="the path to load the model from")
 parser.add_argument("--plot", type=bool, default=False, help="whether to plot the results")
 parser.add_argument("--human_preference", type=float, nargs="+", default=None, help="the human preference")
+parser.add_argument("--actions", type=str, nargs="+", default=None, help="the actions to plot")
 args = parser.parse_args()
 
 env_name = f"mo-deep-sea-treasure-concave-v0"
@@ -39,7 +40,13 @@ deep_sea_treasure_labels = ["treasure value", "time penalty"]
 # Setup agent
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-agent = DWL(input_shape=env.observation_space.shape, num_actions=n_action, num_policies=n_policy, exploration_strategy=None, device=device)
+agent = DWL(
+    input_shape=env.observation_space.shape,
+    num_actions=n_action,
+    num_policies=n_policy,
+    exploration_strategy=create_exploration_strategy("greedy"),
+    device=device,
+)
 agent.load(args.path_to_load_model)
 
 
@@ -49,7 +56,7 @@ rows = high[1] - low[1]
 cols = high[0] - low[0]
 states = [[0.0] * cols for _ in range(rows)]
 
-colors = plt.cm.viridis(np.linspace(0, 1, n_policy + 1))
+colors = plt.cm.viridis(np.linspace(0, 1, n_policy))
 xs = np.arange(n_action)
 # Handle single subplot case
 
@@ -77,8 +84,9 @@ for y, row in enumerate(states):
         if y == len(states) - 1:
             current_ax.set_xlabel(f"{x}")
         idx = np.array([x, y])
-        if env.unwrapped._is_valid_state((idx[1], idx[0])):
-            weights, q_valuess = agent.get_all_info(idx)
+        state = np.array([idx[1], idx[0]])
+        if env.unwrapped._is_valid_state(state):
+            weights, q_valuess = agent.get_all_info(state)
             for i, weight in enumerate(weights):
                 weights[i] = weight * args.human_preference[i]
             for i, q_values in enumerate(q_valuess):
@@ -91,7 +99,7 @@ for y, row in enumerate(states):
 
 plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
 plt.figlegend(legend.values(), legend.keys(), loc="lower center", ncol=n_policy, bbox_to_anchor=(0.5, 0.02), fontsize=8)
-plt.savefig(f"./objective_q_values.png", dpi=500)
+plt.savefig(f"./dwn_objective_q_values.png", dpi=500)
 if args.plot:
     plt.show()
 plt.close()
@@ -114,10 +122,14 @@ for y, row in enumerate(states):
         if y == len(states) - 1:
             current_ax.set_xlabel(f"{x}")
         idx = np.array([x, y])
-        if env.unwrapped._is_valid_state((idx[1], idx[0])):
-            weights, q_values = agent.get_all_info(idx)
+        state = np.array([idx[1], idx[0]])
+        if env.unwrapped._is_valid_state(state):
+            weights, q_values = agent.get_all_info(state)
             for i, weight in enumerate(weights):
-                weights[i] = weight * args.human_preference[i]
+                if args.human_preference[i] <= 0.0:
+                    weights[i] = float("-inf")
+                else:
+                    weights[i] = weight * args.human_preference[i]
             # Set background color based on max weight
             max_weight_idx = np.argmax(weights)
             current_ax.set_facecolor(colors[max_weight_idx])
@@ -125,22 +137,66 @@ for y, row in enumerate(states):
             # Add bar chart of weights
             xs = np.arange(len(weights))
             bars = current_ax.bar(xs, weights, width=bar_width, color="grey", alpha=0.7)
-            color = "white" if max_weight_idx > len(colors) / 2 else "black"
+            color = "white" if max_weight_idx == 0 else "black"
+            action = np.argmax(q_values[max_weight_idx])
+            current_ax.text(0.5, 0.5, f"{args.actions[action]}", ha="center", va="center", fontsize=8, transform=current_ax.transAxes, color=color)
             for i, rect in enumerate(bars):
                 legend[objective_labels[i]] = rect
                 height = rect.get_height()
-                current_ax.text(rect.get_x() + rect.get_width() / 2.0, height, f"{height:.2f}", ha="center", va="bottom", fontsize=3, color=color)
+                current_ax.text(rect.get_x() + rect.get_width() / 2.0, height, f"{height:.2f}", ha="center", va="bottom", fontsize=5, color=color)
             # Add text showing the weight value
-            current_ax.set_title(f"{weights[max_weight_idx]:.2f}", ha="center", va="top", fontsize=4, pad=1)
+            # current_ax.set_title(f"{weights[max_weight_idx]:.2f}", ha="center", va="top", fontsize=4, pad=1)
 
 for i in range(len(colors)):
     legend[f"objective {i+1}"] = plt.Rectangle((0, 0), 1, 1, color=colors[i])
 
-plt.subplots_adjust(left=0.02, right=0.98, top=0.98, bottom=0.13, wspace=0.25, hspace=0.25)
+plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
 plt.figlegend(legend.values(), legend.keys(), loc="lower center", ncol=n_policy, bbox_to_anchor=(0.5, 0.02), fontsize=8)
-plt.savefig(f"./objective_weights.png", dpi=500)
+plt.savefig(f"./dwn_objective_weights.png", dpi=500)
 if args.plot:
     plt.show()
 
 plt.close()
 env.close()
+
+if args.actions:
+    colors = plt.cm.viridis(np.linspace(0, 1, n_policy))
+    legend = {}
+    fig, axes = plt.subplots(len(states), len(states[0]))
+    if not hasattr(axes, "__len__"):
+        axes = [axes]
+    else:
+        axes = axes.flatten()
+    bar_width = 0.2
+    for y, row in enumerate(states):
+        for x, value in enumerate(row):
+            current_ax = axes[y * len(states[0]) + x]
+            current_ax.set_xticks([])
+            current_ax.set_yticks([])
+            if x == 0:
+                current_ax.set_ylabel(f"{y}")
+            if y == len(states) - 1:
+                current_ax.set_xlabel(f"{x}")
+            idx = np.array([x, y])
+            state = np.array([idx[1], idx[0]])
+            if env.unwrapped._is_valid_state(state):
+                weights, q_values = agent.get_all_info(state)
+                for i, weight in enumerate(weights):
+                    weights[i] = weight * args.human_preference[i]
+                # Set background color based on max weight
+                max_weight_idx = np.argmax(weights)
+                action = np.argmax(q_values[max_weight_idx])
+                current_ax.text(0.5, 0.5, f"{args.actions[action]}", ha="center", va="center", fontsize=8)
+                current_ax.set_title(f"", ha="center", va="top", fontsize=0, pad=0)
+
+    for i in range(len(colors)):
+        legend[f"objective {i+1}"] = plt.Rectangle((0, 0), 1, 1, color=colors[i])
+
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
+    plt.figlegend(legend.values(), legend.keys(), loc="lower center", ncol=n_policy, bbox_to_anchor=(0.5, 0.02), fontsize=8)
+    plt.savefig(f"./dwn_objective_actions.png", dpi=500)
+    if args.plot:
+        plt.show()
+
+    plt.close()
+    env.close()

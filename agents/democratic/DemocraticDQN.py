@@ -64,8 +64,11 @@ class DemocraticDQN(AbstractAgent):
         action_advantages = np.array([0.0] * self.num_actions)
         for i, agent in enumerate(self.agents):
             q_values = np.array(agent.get_actions(x))
+            print(f"Q values for policy {i}: {q_values}")
             preference_weighted_q_values = q_values * self.human_preference[i]
             action_advantages = action_advantages + preference_weighted_q_values
+
+        print(x, action_advantages)
         return self.exploration_strategy.get_action(action_advantages, x), {}
 
     def get_actions(self, x):

@@ -19,6 +19,11 @@ def extract_kwargs(kwargs: list[str]):
             else:
                 value = convert_to_num_if_possible(value)
 
+            if value == "True":
+                value = True
+            elif value == "False":
+                value = False
+
             kwargs_dict[key] = value
     return kwargs_dict
 

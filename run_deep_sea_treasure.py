@@ -1,7 +1,5 @@
 import warnings
 
-from utils.plotting import plot_agent_actions_2d_seperated
-
 warnings.filterwarnings("ignore")
 
 import gym
@@ -12,11 +10,19 @@ import torch
 import pandas as pd
 
 import envs  # This imports all the environments
-from utils.constants import MODELS_DIR, RESULTS_DIR
 from exploration_strategy.utils import create_exploration_strategy
-from utils import extract_kwargs, build_parser, run_env, plot_agent_actions_2d, plot_over_time_multiple_subplots, smooth, kwargs_to_string
+from utils import (
+    generate_file_structure,
+    extract_kwargs,
+    build_parser,
+    run_env,
+    plot_agent_actions_2d,
+    plot_over_time_multiple_subplots,
+    smooth,
+    kwargs_to_string,
+    plot_agent_actions_2d_seperated,
+)
 from agents import get_agent
-from utils import generate_file_structure, kwargs_to_string
 
 parser = build_parser()
 parser.add_argument("--treasure_type", type=str, default="concave", help="the type of treasure to use: concave, convex, mirrored")
