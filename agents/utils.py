@@ -17,7 +17,7 @@ agent_names = [
 
 
 def get_agent(agent_name: str, **kwargs) -> AbstractAgent:
-    if kwargs.get("scalarization_method", "linear") is not None:
+    if kwargs.get("scalarization_method", None) is not None:
         kwargs["scalarization_method"] = get_scalarization_method(kwargs["scalarization_method"])
 
     if agent_name == "scaled_democratic":
