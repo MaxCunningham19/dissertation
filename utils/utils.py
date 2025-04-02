@@ -32,7 +32,8 @@ def kwargs_to_string(kwargs: list[str] | None):
     """Converts a list of kwargs to a string that can be used as a filename"""
     if kwargs is None or not isinstance(kwargs, list) or len(kwargs) == 0 or not all(isinstance(item, str) for item in kwargs):
         return ""
-
+    kwargs = kwargs[:]
+    kwargs.sort()
     string = ""
     for i, pair in enumerate(kwargs):
         pair = pair.replace(" ", "").replace("/", "_").replace(".", "_").replace("=", "_")

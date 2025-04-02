@@ -44,7 +44,7 @@ def results_dir(env_tag: str, model_tag: str):
 
 def fnrp(string: str) -> str:
     """Makes a string file name safe"""
-    return string.replace("-", "_").replace(" ", "").replace(".", "_")
+    return string.replace("-", "_").replace(" ", "").replace(".", "_").replace("/", "_").replace("__", "/")
 
 
 def generate_file_structure(
