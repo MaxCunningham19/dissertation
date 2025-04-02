@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 
 from action_scalarization import ActionScalarization
@@ -88,7 +86,8 @@ class DemocraticDWL(DWL):
         """Get the action nomination for the given state"""
         action_values, w_values = self.get_action_and_w_values(x, human_preference)
         action_sel = self.exploration_strategy.get_action(action_values, x)
-        return action_sel, {"policy_sel": action_sel, "w_values": w_values}
+        policy_sel = self.selected_policy.select_policy(action_values, w_values, action_sel)
+        return action_sel, {"policies_sel": policy_sel, "w_values": w_values}
 
     def get_actions(self, x, human_preference: np.ndarray | None = None) -> np.ndarray:
         """Get all action values from the agent in state x"""
@@ -107,5 +106,5 @@ class DemocraticDWL(DWL):
             agent = self.agents[i]
             if self.q_learning:
                 agent.store_memory(s, a, rewards[i], s_, d)
-            if self.w_learning and i != info["policy_sel"]:  # Do not store experience of the policy we selected
+            if self.w_learning and i in info["policies_sel"]:  # Do not store experience of the policy we selected
                 agent.store_w_memory(s, a, rewards[i], s_, d)

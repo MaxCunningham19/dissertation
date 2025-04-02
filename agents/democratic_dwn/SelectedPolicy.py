@@ -24,7 +24,6 @@ class MaxWValue(SelectedPolicy):
     @staticmethod
     def select_policy(objective_action_values: np.ndarray, action_values: np.ndarray, w_values: np.ndarray, selected_action: int) -> list[int]:
         return np.where(w_values == np.max(w_values))[0].tolist()
-        return selected_policies
 
 
 class MaxActionIsSelectedAction(SelectedPolicy):

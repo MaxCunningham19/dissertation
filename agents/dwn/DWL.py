@@ -2,6 +2,7 @@ import copy
 import os
 
 import numpy as np
+import torch
 
 from exploration_strategy.DecayEpsilonGreedy import DecayEpsilonGreedy
 from exploration_strategy import ExplorationStrategy
@@ -87,7 +88,7 @@ class DWL(AbstractAgent):
         w_values = []
         for agent in self.agents:
             w_values.append(agent.get_w_value(x))
-        softmax_w_values = np.exp(w_values) / np.sum(np.exp(w_values))
+        softmax_w_values = self.softmax(w_values)
         softmax_w_values = softmax_w_values * human_preference
         return softmax_w_values
 
@@ -165,3 +166,12 @@ class DWL(AbstractAgent):
             weights.append(agent.get_w_value(x))
             q_values.append(agent.get_actions(x))
         return weights, q_values
+
+    def softmax(self, x) -> np.ndarray:
+        if isinstance(x, torch.Tensor):
+            if x.is_cuda:
+                x = x.cpu()
+            x = x.numpy()
+        x = np.asarray(x).flatten()
+        e_x = np.exp(x - np.max(x))
+        return e_x / e_x.sum()
