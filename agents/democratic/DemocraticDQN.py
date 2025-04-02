@@ -1,8 +1,9 @@
 import numpy as np
-
+import os
 from exploration_strategy import ExplorationStrategy
 from agents.AbstractAgent import AbstractAgent
 from ..dqn_agent import DQN
+from action_scalarization import ActionScalarization
 
 
 class DemocraticDQN(AbstractAgent):
@@ -13,6 +14,7 @@ class DemocraticDQN(AbstractAgent):
         num_actions,
         num_policies,
         exploration_strategy: ExplorationStrategy,
+        scalarization: ActionScalarization,
         batch_size=1024,
         memory_size=100000,
         learning_rate=0.001,
@@ -32,11 +34,10 @@ class DemocraticDQN(AbstractAgent):
         self.num_policies = num_policies
         self.num_states = self.input_shape[0]
         self.exploration_strategy = exploration_strategy
+        self.scalarization = scalarization
         self.human_preference = human_preference
         if self.human_preference is None or len(human_preference) != self.num_policies:
             self.human_preference = [1.0] * self.num_policies
-
-        print(f"Human preference: {self.human_preference}, input_preferences: {human_preference}")
 
         # Construct Agents for each policy
         self.agents: list[DQN] = []
@@ -59,28 +60,20 @@ class DemocraticDQN(AbstractAgent):
                 )
             )
 
-    def get_action(self, x):
+    def get_action(self, x, human_preference: np.ndarray | None = None):
         """Get the action from the democratic DQN"""
-        action_advantages = np.array([0.0] * self.num_actions)
-        for i, agent in enumerate(self.agents):
-            q_values = np.array(agent.get_actions(x))
-            print(f"Q values for policy {i}: {q_values}")
-            preference_weighted_q_values = q_values * self.human_preference[i]
-            action_advantages = action_advantages + preference_weighted_q_values
-
-        print(x, action_advantages)
+        action_advantages = self.get_actions(x, human_preference)
         return self.exploration_strategy.get_action(action_advantages, x), {}
 
-    def get_actions(self, x):
+    def get_actions(self, x, human_preference: np.ndarray | None = None):
         """Get every action from every agent"""
-        action_advantages = np.array([0.0] * self.num_actions)
+        action_advantages = [None] * len(self.agents)
 
         for i, agent in enumerate(self.agents):
             q_values = np.array(agent.get_actions(x))
-            preference_weighted_q_values = q_values * self.human_preference[i]
-            action_advantages = action_advantages + preference_weighted_q_values
+            action_advantages[i] = q_values
 
-        return action_advantages
+        return self.scalarization.scalarize(action_advantages, human_preference)
 
     def get_objective_info(self, x):
         """This is used to get info from each agent regarding the state x"""
@@ -117,11 +110,10 @@ class DemocraticDQN(AbstractAgent):
     def save(self, path: str) -> None:
         """Save all Q-networks"""
         for i in range(self.num_policies):
-            print("Saving policy", i)
             self.agents[i].save_net(path + "Q" + str(i) + ".pt")
 
     def load(self, path: str) -> None:
         """Load all Q-networks"""
         for i in range(self.num_policies):
-            print("Loading", i)
-            self.agents[i].load_net(path + "Q" + str(i) + ".pt")
+            if os.path.exists(path + "Q" + str(i) + ".pt"):
+                self.agents[i].load_net(path + "Q" + str(i) + ".pt")
