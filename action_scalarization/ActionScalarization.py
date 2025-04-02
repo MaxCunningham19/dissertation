@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 import numpy as np
 
@@ -6,7 +7,7 @@ import numpy as np
 class ActionScalarization(ABC):
     @staticmethod
     @abstractmethod
-    def scalarize(action_values: np.ndarray, human_preference: np.ndarray) -> float:
+    def scalarize(action_values: np.ndarray, human_preference: Optional[np.ndarray]) -> np.ndarray:
         """
         Scalarize action values using human preferences.
 
@@ -28,8 +29,10 @@ class LinearScalarization(ActionScalarization):
     """
 
     @staticmethod
-    def scalarize(action_values: np.ndarray, human_preference: np.ndarray) -> np.ndarray:
-        return np.dot(action_values, human_preference)
+    def scalarize(action_values: np.ndarray, human_preference: Optional[np.ndarray]) -> np.ndarray:
+        if human_preference is None:
+            return np.sum(action_values, axis=0)
+        return np.dot(human_preference, action_values)
 
 
 class ChebyshevScalarization(ActionScalarization):
@@ -40,10 +43,12 @@ class ChebyshevScalarization(ActionScalarization):
     """
 
     @staticmethod
-    def scalarize(action_values: np.ndarray, human_preference: np.ndarray) -> np.ndarray:
+    def scalarize(action_values: np.ndarray, human_preference: Optional[np.ndarray]) -> np.ndarray:
+        if human_preference is None:
+            human_preference = np.ones(action_values.shape[0])
         weights = np.array(human_preference)
 
-        ideal_rewards = np.max(action_values, axis=1)
+        ideal_rewards = np.max(action_values, axis=1)  # ideal reward for each objective
 
         deviations = weights[:, None] * np.abs(ideal_rewards[:, None] - action_values)
         scalarized_rewards = np.max(deviations, axis=0)

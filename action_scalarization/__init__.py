@@ -1,1 +1,1 @@
-from .ActionScalarization import get_scalarization_method
+from .ActionScalarization import get_scalarization_method, ActionScalarization
