@@ -23,13 +23,6 @@ def build_parser():
         help="exploration strategy specific parameters not provided below e.g. --exploration_kwargs arg1=value1 arg2=value2",
     )
 
-    parser.add_argument("--max_episode_steps", type=int, default=100, help="max episode steps")
-
-    parser.add_argument(
-        "--not_training",
-        action="store_true",
-        default=False,
-        help="set this flag if you do not want the agent to train, used to evaluate a trained agents execution",
-    )
+    parser.add_argument("--max_steps", type=int, default=100, help="max episode steps")
 
     return parser
