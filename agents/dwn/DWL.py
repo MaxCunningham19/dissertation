@@ -1,6 +1,8 @@
 import copy
 import os
 
+import numpy as np
+
 from exploration_strategy.DecayEpsilonGreedy import DecayEpsilonGreedy
 from exploration_strategy import ExplorationStrategy
 from agents.AbstractAgent import AbstractAgent
@@ -34,7 +36,6 @@ class DWL(AbstractAgent):
         q_learning=True,
         w_learning=True,
     ):
-        print(f"Initializing DWL with {exploration_strategy} and {w_exploration_strategy}")
         self.input_shape = input_shape
         self.num_actions = num_actions
         self.num_policies = num_policies  # The number of policies is the number of
@@ -46,7 +47,6 @@ class DWL(AbstractAgent):
         self.q_learning = q_learning
         self.w_learning = w_learning
 
-        print(f"Initializing DWL with q_learning: {self.q_learning} and w_learning: {self.w_learning}")
         # Learning parameters for DQN agents
         self.batch_size = batch_size
         self.learning_rate = learning_rate
@@ -80,17 +80,28 @@ class DWL(AbstractAgent):
                 )
             )
 
-    def get_action(self, x) -> tuple[int, dict]:
-        """Get the action nomination for the given state"""
-        nominated_actions = []
+    def get_w_values(self, x, human_preference: np.ndarray | None = None) -> np.ndarray:
+        """Get the weights for the given state"""
+        if human_preference is None:
+            human_preference = np.ones(self.num_policies)
         w_values = []
         for agent in self.agents:
-            nominated_actions.append(agent.get_action(x))
             w_values.append(agent.get_w_value(x))
+        softmax_w_values = np.exp(w_values) / np.sum(np.exp(w_values))
+        softmax_w_values = softmax_w_values * human_preference
+        return softmax_w_values
 
+    def get_action(self, x, human_preference: np.ndarray | None = None) -> tuple[int, dict]:
+        """Get the action nomination for the given state"""
+        w_values = self.get_w_values(x, human_preference)
         policy_sel = self.w_exploration_strategy.get_action(w_values, x)
-        sel_action = nominated_actions[policy_sel]
-        return sel_action, {"policy_sel": policy_sel, "nominated_actions": nominated_actions}
+        sel_action = self.agents[policy_sel].get_action(x)
+        return sel_action, {"policy_sel": policy_sel, "w_values": w_values}
+
+    def get_actions(self, x, human_preference: np.ndarray | None = None) -> np.ndarray:
+        w_values = self.get_w_values(x, human_preference)
+        policy_sel = self.w_exploration_strategy.get_action(w_values, x)
+        return self.agents[policy_sel].get_actions(x)
 
     def store_memory(self, s, a, rewards, s_, d, info: dict):
         for i in range(self.num_policies):
@@ -154,10 +165,3 @@ class DWL(AbstractAgent):
             weights.append(agent.get_w_value(x))
             q_values.append(agent.get_actions(x))
         return weights, q_values
-
-    def get_w_values(self, x):
-        """Get the weights for the given state"""
-        w_values = []
-        for agent in self.agents:
-            w_values.append(agent.get_w_value(x))
-        return w_values

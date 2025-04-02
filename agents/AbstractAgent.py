@@ -11,7 +11,7 @@ class AbstractAgent(ABC):
         pass
 
     @abstractmethod
-    def get_actions(self, x, human_preference: np.ndarray | None = None) -> list[np.ndarray]:
+    def get_actions(self, x, human_preference: np.ndarray | None = None) -> np.ndarray:
         """Get all action values from the agent in state x"""
         pass
 
