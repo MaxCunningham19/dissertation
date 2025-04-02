@@ -101,10 +101,7 @@ class DWN(object):
             state = torch.from_numpy(x).float().unsqueeze(0).to(self.device)
         else:
             state = x
-        a = self.policy_net.eval()
-        with torch.no_grad():
-            action_values = self.policy_net(state)
-
+        action_values = self.get_actions(state)
         return self.exploration_strategy.get_action(action_values, state)
 
     def get_actions(self, x):

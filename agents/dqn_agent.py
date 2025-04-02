@@ -96,7 +96,7 @@ class DQN(object):
 
         return action_values.tolist()
 
-    def get_action(self, x, training=True):
+    def get_action(self, x):
         """Nominate an action"""
         if type(x).__name__ == "ndarray":
             state = torch.from_numpy(x).float().unsqueeze(0).to(self.device)
@@ -104,10 +104,7 @@ class DQN(object):
             state = x
         a = self.policy_net.eval()
         action_values = self.get_actions(x)
-        if training:
-            return self.exploration_strategy.get_action(action_values, state)
-        else:
-            return np.argmax(action_values)
+        return self.exploration_strategy.get_action(action_values, state)
 
     def store_memory(self, state, action, reward, next_state, done):
         """Store memory in the PERBuffer"""
