@@ -36,7 +36,7 @@ def kwargs_to_string(kwargs: list[str] | None):
     kwargs.sort()
     string = ""
     for i, pair in enumerate(kwargs):
-        pair = pair.replace(" ", "").replace("/", "_").replace(".", "_").replace("=", "_")
+        pair = pair.replace(" ", "").replace("/", "_").replace(".", "_")
         string += f"{pair}"
         if i < len(kwargs) - 1:
             string += "__"
