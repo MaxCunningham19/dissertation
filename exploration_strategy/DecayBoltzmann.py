@@ -12,3 +12,6 @@ class DecayBoltzmann(Boltzmann):
 
     def _update_parameters(self):
         self.temperature = max(self.temperature_min, self.temperature * self.temperature_decay)
+
+    def info(self) -> dict:
+        return {"temperature": self.temperature, "temperature_decay": self.temperature_decay, "temperature_min": self.temperature_min}

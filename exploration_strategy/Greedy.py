@@ -13,5 +13,5 @@ class Greedy(ExplorationStrategy):
     def _update_parameters(self):
         return
 
-    def info(self):
-        return ""
+    def info(self) -> dict:
+        return {}

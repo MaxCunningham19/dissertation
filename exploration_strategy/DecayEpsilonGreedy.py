@@ -12,3 +12,6 @@ class DecayEpsilonGreedy(EpsilonGreedy):
 
     def _update_parameters(self):
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+
+    def info(self) -> dict:
+        return {"epsilon": self.epsilon, "epsilon_decay": self.epsilon_decay, "epsilon_min": self.epsilon_min}

@@ -31,5 +31,5 @@ class Counts(ExplorationStrategy):
     def _update_parameters(self):
         return
 
-    def info(self):
-        return self.counts, self.alpha, self.beta
+    def info(self) -> dict:
+        return {"alpha": self.alpha, "beta": self.beta}

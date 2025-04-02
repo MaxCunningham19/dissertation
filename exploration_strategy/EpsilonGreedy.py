@@ -17,5 +17,5 @@ class EpsilonGreedy(ExplorationStrategy):
     def _update_parameters(self):
         return
 
-    def info(self):
-        return self.epsilon
+    def info(self) -> dict:
+        return {"epsilon": self.epsilon}

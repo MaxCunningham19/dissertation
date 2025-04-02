@@ -45,3 +45,15 @@ class GrowPheromones(Pheromones):
             for i in range(len(pheromones)):
                 pheromones[i] = max(self.pheromone_min, pheromones[i] * self.pheromone_decay)
             self.pheromones[state] = pheromones
+
+    def info(self) -> dict:
+        return {
+            "pheromone_decay": self.pheromone_decay,
+            "pheromone_inc": self.pheromone_inc,
+            "alpha": self.alpha,
+            "alpha_max": self.alpha_max,
+            "alpha_growth": self.alpha_growth,
+            "beta": self.beta,
+            "beta_decay": self.beta_decay,
+            "beta_min": self.beta_min,
+        }

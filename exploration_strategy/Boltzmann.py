@@ -22,5 +22,5 @@ class Boltzmann(ExplorationStrategy):
     def _update_parameters(self):
         return
 
-    def info(self):
-        return self.temperature
+    def info(self) -> dict:
+        return {"temperature": self.temperature}

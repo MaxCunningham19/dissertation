@@ -56,5 +56,11 @@ class Pheromones(ExplorationStrategy):
     def force_update_parameters(self):
         self._update_parameters()
 
-    def info(self):
-        return self.pheromones, self.alpha, self.beta
+    def info(self) -> dict:
+        return {
+            "pheromone_decay": self.pheromone_decay,
+            "pheromone_inc": self.pheromone_inc,
+            "alpha": self.alpha,
+            "beta": self.beta,
+            "pheromone_min": self.pheromone_min,
+        }

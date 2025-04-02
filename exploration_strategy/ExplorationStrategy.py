@@ -50,7 +50,7 @@ class ExplorationStrategy(ABC):
         pass
 
     @abstractmethod
-    def info(self):
+    def info(self) -> dict:
         """Returns the current parameters of the strategy"""
         pass
 

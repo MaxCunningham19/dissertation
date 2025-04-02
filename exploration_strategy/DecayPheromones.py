@@ -30,6 +30,16 @@ class DecayPheromones(Pheromones):
         self.beta_decay = beta_decay
         self.beta_min = beta_min
 
+    def info(self) -> dict:
+        return {
+            "pheromone_decay": self.pheromone_decay,
+            "pheromone_inc": self.pheromone_inc,
+            "alpha": self.alpha,
+            "beta": self.beta,
+            "beta_decay": self.beta_decay,
+            "beta_min": self.beta_min,
+        }
+
     def _update_parameters(self):
         self.beta = max(self.beta * self.beta_decay, self.beta_min)
         self.force_update_parameters()
