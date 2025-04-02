@@ -10,20 +10,21 @@ from .Counts import Counts
 from .GrowPheromones import GrowPheromones
 
 
+strategies = {
+    "boltzmann": Boltzmann,
+    "decay_boltzmann": DecayBoltzmann,
+    "epsilon": EpsilonGreedy,
+    "decay_epsilon": DecayEpsilonGreedy,
+    "pheromones": Pheromones,
+    "decay_pheromones": DecayPheromones,
+    "greedy": Greedy,
+    "counts": Counts,
+    "grow_pheromones": GrowPheromones,
+}
+
+
 def create_exploration_strategy(strategy_name: str, **kwargs) -> ExplorationStrategy:
     """Creates an instance of an exploration strategy given its name."""
-
-    strategies = {
-        "boltzmann": Boltzmann,
-        "decay_boltzmann": DecayBoltzmann,
-        "epsilon": EpsilonGreedy,
-        "decay_epsilon": DecayEpsilonGreedy,
-        "pheromones": Pheromones,
-        "decay_pheromones": DecayPheromones,
-        "greedy": Greedy,
-        "counts": Counts,
-        "grow_pheromones": GrowPheromones,
-    }
 
     if strategy_name not in strategies:
         raise ValueError(f"Unknown exploration strategy: {strategy_name}")

@@ -7,3 +7,4 @@ from .DecayEpsilonGreedy import DecayEpsilonGreedy
 from .Pheromones import Pheromones
 from .GrowPheromones import GrowPheromones
 from .utils import create_exploration_strategy
+from .utils import strategies as EXPLORATION_STRATEGIES

@@ -1,9 +1,10 @@
+import json
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from exploration_strategy import ExplorationStrategy
+from exploration_strategy import ExplorationStrategy, create_exploration_strategy
 
 from .ReplayBuffer import ReplayBuffer
 
@@ -216,6 +217,13 @@ class DWN(object):
         """Save the W-network"""
         torch.save(self.wnetwork_local.state_dict(), path)
 
+    def save_exploration_strategy(self, path):
+        """Save the exploration strategy"""
+        info_dict = self.exploration_strategy.info()
+        info_dict["strategy_name"] = self.exploration_strategy.__class__.__name__
+        with open(path, "w") as f:
+            json.dump(info_dict, f)
+
     def load_net(self, path):
         """Load the Q-network"""
         self.policy_net.load_state_dict(torch.load(path)), self.target_net.load_state_dict(torch.load(path))
@@ -225,6 +233,19 @@ class DWN(object):
         """Load the W-network"""
         self.wnetwork_local.load_state_dict(torch.load(path)), self.wnetwork_target.load_state_dict(torch.load(path))
         self.wnetwork_local.eval(), self.wnetwork_target.eval()
+
+    def load_exploration_strategy(self, path):
+        """Load the exploration strategy"""
+        with open(path, "r") as f:
+            info_dict = json.load(f)
+        strategy_name = info_dict.pop("strategy_name")
+        if self.exploration_strategy is None and strategy_name == self.exploration_strategy.__class__.__name__:
+            self.exploration_strategy = create_exploration_strategy(strategy_name, **info_dict)
+        else:
+            print(
+                f"Warning: The exploration strategy {self.exploration_strategy.__class__.__name__} was passed the class but in the file {path} the stored strategy is {strategy_name}.\n"
+                + " Continuing with the passed strategy."
+            )
 
     def collect_loss_info(self):
         """Collect the loss information"""

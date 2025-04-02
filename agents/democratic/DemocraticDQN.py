@@ -111,9 +111,12 @@ class DemocraticDQN(AbstractAgent):
         """Save all Q-networks"""
         for i in range(self.num_policies):
             self.agents[i].save_net(path + "Q" + str(i) + ".pt")
+            self.agents[i].save_exploration_strategy(path + "exploration_strategy" + str(i) + ".json")
 
     def load(self, path: str) -> None:
         """Load all Q-networks"""
         for i in range(self.num_policies):
             if os.path.exists(path + "Q" + str(i) + ".pt"):
                 self.agents[i].load_net(path + "Q" + str(i) + ".pt")
+            if os.path.exists(path + "exploration_strategy" + str(i) + ".json"):
+                self.agents[i].load_exploration_strategy(path + "exploration_strategy" + str(i) + ".json")

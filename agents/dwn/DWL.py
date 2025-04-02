@@ -88,7 +88,7 @@ class DWL(AbstractAgent):
         w_values = []
         for agent in self.agents:
             w_values.append(agent.get_w_value(x))
-        softmax_w_values = self.softmax(w_values)
+        softmax_w_values = np.exp(w_values) / np.sum(np.exp(w_values))
         softmax_w_values = softmax_w_values * human_preference
         return softmax_w_values
 
@@ -139,6 +139,7 @@ class DWL(AbstractAgent):
         for i, agent in enumerate(self.agents):
             agent.save_net(path + "Q" + str(i) + ".pt")
             agent.save_w_net(path + "W" + str(i) + ".pt")
+            agent.save_exploration_strategy(path + "exploration_strategy" + str(i) + ".json")
 
     def load(self, path):
         """Load the pre-trained Q-networks and W-networks from file, if they exist"""
@@ -147,6 +148,8 @@ class DWL(AbstractAgent):
                 agent.load_net(path + "Q" + str(i) + ".pt")
             if os.path.exists(path + "W" + str(i) + ".pt"):
                 agent.load_w_net(path + "W" + str(i) + ".pt")
+            if os.path.exists(path + "exploration_strategy" + str(i) + ".json"):
+                agent.load_exploration_strategy(path + "exploration_strategy" + str(i) + ".json")
 
     def get_objective_info(self, x):
         """This is used to get info from each agent regarding the state x"""
