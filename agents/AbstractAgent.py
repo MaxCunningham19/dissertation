@@ -1,12 +1,18 @@
 from abc import ABC, abstractmethod
+import numpy as np
 
 
 class AbstractAgent(ABC):
     """These are the minimum methods that are required for an agent to be ran in the environment"""
 
     @abstractmethod
-    def get_action(self, x) -> tuple[int, dict]:
+    def get_action(self, x, human_preference: np.ndarray | None = None) -> tuple[int, dict]:
         """Get an action from the agent in state x"""
+        pass
+
+    @abstractmethod
+    def get_actions(self, x, human_preference: np.ndarray | None = None) -> list[np.ndarray]:
+        """Get all action values from the agent in state x"""
         pass
 
     @abstractmethod
