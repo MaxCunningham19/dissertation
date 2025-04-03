@@ -16,10 +16,10 @@ class DWL(AbstractAgent):
         input_shape,
         num_actions,
         num_policies,
-        batch_size=1024,
-        exploration_strategy: ExplorationStrategy = DecayEpsilonGreedy(epsilon=0.95, epsilon_decay=0.995, epsilon_min=0.1),
-        w_exploration_strategy: ExplorationStrategy = DecayEpsilonGreedy(epsilon=0.95, epsilon_decay=0.995, epsilon_min=0.1),
+        exploration_strategy: ExplorationStrategy | None,
+        w_exploration_strategy: ExplorationStrategy | None,
         memory_size=100000,
+        batch_size=1024,
         learning_rate=0.001,
         gamma=0.9,
         hidlyr_nodes=256,
@@ -149,7 +149,7 @@ class DWL(AbstractAgent):
                 agent.load_w_net(path + "W" + str(i) + ".pt")
             if os.path.exists(path + "exploration_strategy" + str(i) + ".json"):
                 agent.load_exploration_strategy(path + "exploration_strategy" + str(i) + ".json")
-        if os.path.exists(path + "w_exploration_strategy.json"):
+        if os.path.exists(path + "w_exploration_strategy.json") and self.w_exploration_strategy is not None:
             self.w_exploration_strategy.load(path + "w_exploration_strategy.json")
 
     def get_objective_info(self, x):

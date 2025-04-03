@@ -4,6 +4,7 @@ from action_scalarization import ActionScalarization
 from agents.democratic_dwn.SelectedPolicy import SelectedPolicy
 from agents.dwn import DWL
 from exploration_strategy import ExplorationStrategy
+from exploration_strategy.utils import create_exploration_strategy
 
 
 class DemocraticDWL(DWL):
@@ -27,7 +28,8 @@ class DemocraticDWL(DWL):
         device=None,
         tau=0.001,
         w_tau=0.001,
-        walpha=0.001,
+        w_alpha=0.001,
+        per_epsilon=0.001,
         seed=404,
     ):
 
@@ -35,7 +37,8 @@ class DemocraticDWL(DWL):
             input_shape,
             num_actions=num_actions,
             num_policies=num_policies,
-            exploration_strategy=exploration_strategy,
+            exploration_strategy=create_exploration_strategy("greedy"),
+            w_exploration_strategy=create_exploration_strategy("greedy"),
             memory_size=memory_size,
             batch_size=batch_size,
             learning_rate=learning_rate,
@@ -47,11 +50,13 @@ class DemocraticDWL(DWL):
             device=device,
             tau=tau,
             w_tau=w_tau,
-            walpha=walpha,
+            w_alpha=w_alpha,
+            per_epsilon=per_epsilon,
             seed=seed,
         )
         self.scalarization = scalarization
         self.selected_policy = selected_policy
+        self.exploration_strategy = exploration_strategy
 
     def get_action_and_w_values(self, x, human_preference: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Get the action nomination and the w-values for the given state
@@ -79,9 +84,9 @@ class DemocraticDWL(DWL):
 
     def get_action(self, x, human_preference: np.ndarray | None = None) -> tuple[int, dict]:
         """Get the action nomination for the given state"""
-        action_values, w_values = self.get_action_and_w_values(x, human_preference)
+        action_values, w_values, objective_action_values = self.get_action_and_w_values(x, human_preference)
         action_sel = self.exploration_strategy.get_action(action_values, x)
-        policy_sel = self.selected_policy.select_policy(action_values, w_values, action_sel)
+        policy_sel = self.selected_policy.select_policy(objective_action_values, action_values, w_values, action_sel)
         return action_sel, {"policies_sel": policy_sel, "w_values": w_values}
 
     def get_actions(self, x, human_preference: np.ndarray | None = None) -> np.ndarray:

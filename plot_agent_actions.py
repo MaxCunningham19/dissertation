@@ -2,7 +2,7 @@ import os
 import torch
 from agents.utils import get_agent
 from exploration_strategy.utils import create_exploration_strategy
-from utils.plotting import plot_agent_actions_2d, plot_agent_actions_2d_seperated
+from utils.plotting import plot_agent_actions_2d, plot_agent_actions_2d_seperated, plot_state_actions, plot_summed_q_values
 
 import argparse
 import gym
@@ -24,6 +24,7 @@ parser.add_argument(
     help="model specific parameters not provided below e.g. --model_kwargs arg1=value1 arg2=value2",
 )
 parser.add_argument("--objective_labels", type=str, nargs="*", default=None, help="objective labels")
+parser.add_argument("--action_labels", type=str, nargs="*", default=None, help="action labels")
 parser.add_argument("--images_dir", type=str, default=" ./images", help="images directory")
 parser.add_argument("--plot", action="store_true", default=False, help="plot the results")
 args = parser.parse_args()
@@ -89,6 +90,26 @@ plot_agent_actions_2d_seperated(
     n_policy,
     save_path=f"{args.images_dir}",
     plot=args.plot,
+    should_plot=lambda state: env.unwrapped._is_valid_state((state[1], state[0])),
+)
+
+plot_summed_q_values(
+    states,
+    agent,
+    n_action,
+    n_policy,
+    save_path=f"{args.images_dir}",
+    plot=args.plot,
+    should_plot=lambda state: env.unwrapped._is_valid_state((state[1], state[0])),
+)
+
+plot_state_actions(
+    states,
+    agent,
+    n_action,
+    save_path=f"{args.images_dir}",
+    plot=args.plot,
+    action_labels=args.action_labels,
     should_plot=lambda state: env.unwrapped._is_valid_state((state[1], state[0])),
 )
 

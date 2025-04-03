@@ -161,6 +161,25 @@ def plot_agent_actions_2d_seperated(
         if plot:
             plt.show()
 
+
+def plot_summed_q_values(
+    states: list[list],
+    agent: AbstractAgent,
+    n_action,
+    n_policy,
+    bar_width=0.2,
+    save_path: str = None,
+    plot: bool = False,
+    objective_labels: list[str] | None = None,
+    should_plot: lambda state: bool = lambda state: True,
+):
+    """Plots a grid of bar charts showing the summed Q-values for each action in each state"""
+    if len(states) <= 0 or n_policy <= 0 or n_action <= 0:
+        return
+    if objective_labels is None:
+        objective_labels = [f"{i}" for i in range(n_policy)]
+    colors = plt.cm.viridis(np.linspace(0, 1, n_policy + 1))
+    xs = np.arange(n_action)
     fig, axes = plt.subplots(len(states), len(states[0]))
     if not hasattr(axes, "__len__"):
         axes = [axes]
@@ -187,6 +206,7 @@ def plot_agent_actions_2d_seperated(
         plt.savefig(f"{save_path}/summed_q_values.png", dpi=500)
     if plot:
         plt.show()
+    plt.close()
 
 
 def plot_agent_w_values(
@@ -242,3 +262,77 @@ def plot_agent_w_values(
         plt.savefig(f"{save_path}/w_values.png", dpi=500, bbox_inches="tight")
     if plot:
         plt.show()
+
+
+def plot_state_actions(
+    states: list[list],
+    agent: AbstractAgent,
+    n_policy,
+    save_path: str = None,
+    plot: bool = False,
+    action_labels: list[str] | None = None,
+    should_plot: lambda state: bool = lambda state: True,
+):
+    fig, axes = plt.subplots(len(states), len(states[0]))
+    if not hasattr(axes, "__len__"):
+        axes = [axes]
+    else:
+        axes = axes.flatten()
+    for y, row in enumerate(states):
+        for x, state in enumerate(row):
+            current_ax = axes[y * len(states[0]) + x]
+            current_ax.set_xticks([])
+            current_ax.set_yticks([])
+            if x == 0:
+                current_ax.set_ylabel(f"{y}")
+            if y == len(states) - 1:
+                current_ax.set_xlabel(f"{x}")
+            if should_plot(state):
+                action, _ = agent.get_action(state)
+                print(f"action: {action}")
+                current_ax.text(0.5, 0.5, f"{action_labels[action]}", ha="center", va="center", fontsize=8)
+
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
+    plt.savefig(f"{save_path}/selected_actions.png", dpi=500)
+    if plot:
+        plt.show()
+
+    plt.close()
+
+
+def plot_state_actions(
+    states: list[list],
+    agent: AbstractAgent,
+    n_actions,
+    save_path: str = None,
+    plot: bool = False,
+    action_labels: list[str] | None = None,
+    should_plot: lambda state: bool = lambda state: True,
+):
+    """Plots a grid of where the selected action is plotted for each state"""
+    if action_labels is None:
+        action_labels = [f"{i}" for i in range(n_actions)]
+    fig, axes = plt.subplots(len(states), len(states[0]))
+    if not hasattr(axes, "__len__"):
+        axes = [axes]
+    else:
+        axes = axes.flatten()
+    for y, row in enumerate(states):
+        for x, state in enumerate(row):
+            current_ax = axes[y * len(states[0]) + x]
+            current_ax.set_xticks([])
+            current_ax.set_yticks([])
+            if x == 0:
+                current_ax.set_ylabel(f"{y}")
+            if y == len(states) - 1:
+                current_ax.set_xlabel(f"{x}")
+            if should_plot(state):
+                action, _ = agent.get_action(state)
+                current_ax.text(0.5, 0.5, f"{action_labels[action]}", ha="center", va="center", fontsize=8)
+
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
+    plt.savefig(f"{save_path}/selected_actions.png", dpi=500)
+    if plot:
+        plt.show()
+
+    plt.close()
