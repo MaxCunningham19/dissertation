@@ -60,8 +60,9 @@ start_episode = 0
 
 df = pd.DataFrame(columns=["episode", "episode_reward", "loss"])
 if args.path_to_load_model is not None and len(args.path_to_load_model) > 0:
-    if os.path.exists(results_path):
-        df = pd.read_csv(results_path)
+    prev_results_path = "".join(args.path_to_load_model.split("models/") + ["results.csv"]).replace(" ", "")
+    if os.path.exists(prev_results_path):
+        df = pd.read_csv(prev_results_path)
         start_episode = df.iloc[-1]["episode"] + 1
 
 if args.record:

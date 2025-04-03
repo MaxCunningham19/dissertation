@@ -21,7 +21,7 @@ class TestSimpleMOEnv(gym.Env, EzPickle):
     Rewards are: Speed to Exit, Goals Completed
     """
 
-    metadata = {"render_modes": ["human", "rgb_array"], "video.frames_per_second": 3}
+    metadata = {"render_modes": ["human", "rgb_array"], "video.frames_per_second": 3, "render_fps": 1}
     reward_range = (-float("inf"), float("inf"))
 
     def __init__(self, render_mode="human", width=2, height=2, fps=3, max_steps=200):
