@@ -40,9 +40,7 @@ class ExplorationStrategy(ABC):
         if self.update_counts < self.delay_updates:
             self.force_update_parameters()
             self.update_counts += 1
-            print(f"Delaying update for {self.delay_updates - self.update_counts} more updates")
             return
-        print(f"Updating parameters for {self.update_counts} updates")
         self._update_parameters()
 
     @abstractmethod

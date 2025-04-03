@@ -39,7 +39,7 @@ class TestSimpleMOEnv(gym.Env, EzPickle):
 
         self.reward_space_info = ["water", "food"]
         self.reward_space = Box(low=np.array([-1.0, -1.0]), high=np.array([1.0, 1.0]), shape=(2,), dtype=np.float32)
-        self.observation_space = Box(low=0, high=max(self.width, self.height) - 1, shape=(2,), dtype=np.int32)
+        self.observation_space = Box(low=0, high=max(self.width, self.height), shape=(2,), dtype=np.int32)
         self.action_space = Discrete(9)  # noop, up, down, left, right, up-left, up-right, down-left, down-right = 0, 1, 2, 3, 4, 5, 6, 7
 
     def step(self, action):

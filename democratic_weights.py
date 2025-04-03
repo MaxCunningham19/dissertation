@@ -2,7 +2,9 @@ import warnings
 
 from matplotlib import pyplot as plt
 
+from agents.utils import get_agent
 from utils.plotting import plot_agent_actions_2d_seperated
+from utils.utils import extract_kwargs
 
 warnings.filterwarnings("ignore")
 
@@ -16,9 +18,6 @@ import pandas as pd
 import envs  # This imports all the environments
 from utils.constants import MODELS_DIR, RESULTS_DIR
 from exploration_strategy.utils import create_exploration_strategy
-from utils import extract_kwargs, build_parser, run_env, plot_agent_actions_2d, plot_over_time_multiple_subplots, smooth, kwargs_to_string
-from agents import get_agent, DWL, DemocraticDQN
-from utils import generate_file_structure, kwargs_to_string
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -26,27 +25,35 @@ parser.add_argument("--path_to_load_model", type=str, default=None, help="the pa
 parser.add_argument("--plot", type=bool, default=False, help="whether to plot the results")
 parser.add_argument("--human_preference", type=float, nargs="+", default=None, help="the human preference")
 parser.add_argument("--actions", type=str, nargs="+", default=None, help="the actions to plot")
+parser.add_argument("--model_kwargs", type=str, nargs="*", default=None, help="the model kwargs")
 args = parser.parse_args()
 
-env_name = f"mo-deep-sea-treasure-concave-v0"
+env_name = f"mo-collaborative-env"
 
 env = mo_gym.make(env_name, render_mode="rgb_array")
 n_state = env.observation_space.shape[0]
 n_action = env.action_space.n
 n_policy = env.unwrapped.reward_space.shape[0]
 
+human_preferences = args.human_preference
+if human_preferences is None or len(human_preferences) != n_policy:
+    human_preferences = np.ones(n_policy)
+
+action_labels = args.actions
+if action_labels is None or len(action_labels) != n_action:
+    action_labels = [f"action {i}" for i in range(n_action)]
+
 
 # Setup agent
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+model_kwargs = extract_kwargs(args.model_kwargs)
+model_kwargs["device"] = device
+model_kwargs["input_shape"] = env.observation_space.shape
+model_kwargs["num_actions"] = n_action
+model_kwargs["num_policies"] = n_policy
+model_kwargs["exploration_strategy"] = create_exploration_strategy("greedy")
 
-agent = DemocraticDQN(
-    input_shape=env.observation_space.shape,
-    num_actions=n_action,
-    num_policies=n_policy,
-    exploration_strategy=create_exploration_strategy("greedy"),
-    device=device,
-    human_preference=args.human_preference,
-)
+agent = get_agent("democratic", **model_kwargs)
 agent.load(args.path_to_load_model)
 
 
@@ -89,7 +96,7 @@ for x, row in enumerate(states):
             q_valuess = agent.get_objective_info(state)
             action, _ = agent.get_action(state)
             for i, q_values in enumerate(q_valuess):
-                q_values = [x * args.human_preference[i] for x in q_values]
+                q_values = [x * human_preferences[i] for x in q_values]
                 offset = negative_offset + (i) * (bar_width_single)
                 bar = current_ax.bar(xs + offset, q_values, width=bar_width_single, label=objective_labels[i], color=colors[i], alpha=0.7)
                 legend[objective_labels[i]] = bar
@@ -126,7 +133,7 @@ for x, row in enumerate(states):
         if env.unwrapped._is_valid_state((state)):
             q_valuess = np.array(agent.get_objective_info(idx))
             for i, q_values in enumerate(q_valuess):
-                q_valuess[i] = [x * args.human_preference[i] for x in q_values]
+                q_valuess[i] = [x * human_preferences[i] for x in q_values]
             # Set background color based on max weight
             sum_ = np.array([0.0] * n_action)
             proportions = np.array([[0.0] * n_action] * n_policy)
@@ -148,7 +155,7 @@ for x, row in enumerate(states):
             bars = current_ax.bar(xs, q_valuess[:, max_weight_idx], width=bar_width, color="grey", alpha=0.7)
             color = "white" if max_proportion_policy == 0 else "black"
             action, _ = agent.get_action(state)  # Get action before using it
-            current_ax.text(0.5, 0.5, f"{args.actions[action]}", ha="center", va="center", fontsize=8, transform=current_ax.transAxes, color=color)
+            current_ax.text(0.5, 0.5, f"{action_labels[action]}", ha="center", va="center", fontsize=8, transform=current_ax.transAxes, color=color)
             for i, rect in enumerate(bars):
                 legend[objective_labels[i]] = rect
                 height = rect.get_height()
@@ -167,7 +174,7 @@ if args.plot:
 plt.close()
 env.close()
 
-if args.actions:
+if action_labels:
     colors = plt.cm.viridis(np.linspace(0, 1, n_policy))
     legend = {}
     fig, axes = plt.subplots(len(states), len(states[0]))
@@ -190,7 +197,7 @@ if args.actions:
             if env.unwrapped._is_valid_state(state):
                 action, _ = agent.get_action(state)
                 print(f"action: {action}")
-                current_ax.text(0.5, 0.5, f"{args.actions[action]}", ha="center", va="center", fontsize=8)
+                current_ax.text(0.5, 0.5, f"{action_labels[action]}", ha="center", va="center", fontsize=8)
 
     for i in range(len(colors)):
         legend[f"objective {i+1}"] = plt.Rectangle((0, 0), 1, 1, color=colors[i])

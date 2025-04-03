@@ -1,6 +1,8 @@
 from matplotlib import pyplot as plt
 import numpy as np
 
+from agents.AbstractAgent import AbstractAgent
+
 from .utils import softmax
 
 
@@ -104,17 +106,21 @@ def plot_over_time_multiple_subplots(
 
 def plot_agent_actions_2d_seperated(
     states: list[list],
-    agent,
+    agent: AbstractAgent,
     n_action,
     n_policy,
     bar_width=0.2,
     save_path: str = None,
     plot: bool = False,
+    objective_labels: list[str] | None = None,
     should_plot: lambda state: bool = lambda state: True,
 ):
     """Plots a grid of bar charts of the values of each action for each state"""
     if len(states) <= 0 or n_policy <= 0 or n_action <= 0:
         return
+
+    if objective_labels is None:
+        objective_labels = [f"{i}" for i in range(n_policy)]
 
     colors = plt.cm.viridis(np.linspace(0, 1, n_policy + 1))
     xs = np.arange(n_action)
@@ -151,7 +157,7 @@ def plot_agent_actions_2d_seperated(
 
         plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
         if save_path is not None:
-            plt.savefig(f"{save_path}/objective_{i}_q_values.png", dpi=500)
+            plt.savefig(f"{save_path}/objective_{objective_labels[i]}_q_values.png", dpi=500)
         if plot:
             plt.show()
 
@@ -170,13 +176,9 @@ def plot_agent_actions_2d_seperated(
                 current_ax.set_ylabel(f"{y}")
             if y == len(states) - 1:
                 current_ax.set_xlabel(f"{x}")
-            idx = np.array([x, y])
             if should_plot(state):
-                agent_info = agent.get_objective_info(state)
-                info = np.array([0.0] * n_action)
-                for i in range(n_policy):
-                    info = info + np.array(agent_info[i])
-                bar = current_ax.bar(xs, info, width=bar_width, color=colors[n_policy], alpha=0.7)
+                action_values = agent.get_actions(state)
+                bar = current_ax.bar(xs, action_values, width=bar_width, color=colors[0], alpha=0.7)
                 for rect in bar:
                     height = rect.get_height()
                     current_ax.text(rect.get_x() + rect.get_width() / 2.0, height, f"{height:.2f}", ha="center", va="bottom", fontsize=5)
