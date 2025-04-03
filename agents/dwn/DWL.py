@@ -138,6 +138,7 @@ class DWL(AbstractAgent):
             agent.save_net(path + "Q" + str(i) + ".pt")
             agent.save_w_net(path + "W" + str(i) + ".pt")
             agent.save_exploration_strategy(path + "exploration_strategy" + str(i) + ".json")
+        self.w_exploration_strategy.save(path + "w_exploration_strategy.json")
 
     def load(self, path):
         """Load the pre-trained Q-networks and W-networks from file, if they exist"""
@@ -148,6 +149,8 @@ class DWL(AbstractAgent):
                 agent.load_w_net(path + "W" + str(i) + ".pt")
             if os.path.exists(path + "exploration_strategy" + str(i) + ".json"):
                 agent.load_exploration_strategy(path + "exploration_strategy" + str(i) + ".json")
+        if os.path.exists(path + "w_exploration_strategy.json"):
+            self.w_exploration_strategy.load(path + "w_exploration_strategy.json")
 
     def get_objective_info(self, x):
         """This is used to get info from each agent regarding the state x"""

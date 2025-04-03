@@ -68,20 +68,26 @@ class ExplorationStrategy(ABC):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         info_dict = self.info()
         info_dict["strategy_name"] = self.__class__.__name__
-        with open(path, "w") as f:
-            json.dump(info_dict, f)
+        try:
+            with open(path, "w") as f:
+                json.dump(info_dict, f)
+        except (IOError, json.JSONDecodeError) as e:
+            print(f"Error saving exploration strategy to {path}: {str(e)}")
 
     def load(self, path: str) -> None:
         """Load the exploration strategy"""
         if not os.path.exists(path):
             return
-        with open(path, "r") as f:
-            info_dict = json.load(f)
-        strategy_name = info_dict.pop("strategy_name")
-        if self.__class__.__name__ == strategy_name:
-            self.__init__(**info_dict)
-        else:
-            print(
-                f"Warning: The exploration strategy {self.exploration_strategy.__class__.__name__} was passed the class but in the file {path} the stored strategy is {strategy_name}.\n"
-                + " Continuing with the passed strategy."
-            )
+        try:
+            with open(path, "r") as f:
+                info_dict = json.load(f)
+            strategy_name = info_dict.pop("strategy_name")
+            if self.__class__.__name__ == strategy_name:
+                self.__init__(**info_dict)
+            else:
+                print(
+                    f"Warning: The exploration strategy {self.__class__.__name__} was passed the class but in the file {path} the stored strategy is {strategy_name}.\n"
+                    + " Continuing with the passed strategy."
+                )
+        except (json.JSONDecodeError, FileNotFoundError) as e:
+            return
