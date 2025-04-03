@@ -1,10 +1,12 @@
 import json
+import os
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from exploration_strategy import ExplorationStrategy, create_exploration_strategy
+from exploration_strategy import ExplorationStrategy
+from exploration_strategy.utils import create_exploration_strategy
 from .ReplayBuffer import ReplayBuffer
 
 
@@ -164,20 +166,12 @@ class DQN(object):
 
     def save_exploration_strategy(self, path):
         """Save the exploration strategy"""
-        info_dict = self.exploration_strategy.info()
-        info_dict["strategy_name"] = self.exploration_strategy.__class__.__name__
-        with open(path, "w") as f:
-            json.dump(info_dict, f)
+        if self.exploration_strategy is not None:
+            self.exploration_strategy.save(path)
 
     def load_exploration_strategy(self, path):
         """Load the exploration strategy"""
-        with open(path, "r") as f:
-            info_dict = json.load(f)
-        strategy_name = info_dict.pop("strategy_name")
-        if self.exploration_strategy is None and strategy_name == self.exploration_strategy.__class__.__name__:
-            self.exploration_strategy = create_exploration_strategy(strategy_name, **info_dict)
+        if self.exploration_strategy is None:
+            self.exploration_strategy = create_exploration_strategy_from_file(path)
         else:
-            print(
-                f"Warning: The exploration strategy {self.exploration_strategy.__class__.__name__} was passed the class but in the file {path} the stored strategy is {strategy_name}.\n"
-                + " Continuing with the passed strategy."
-            )
+            self.exploration_strategy.load(path)

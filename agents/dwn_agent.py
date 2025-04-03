@@ -4,7 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from exploration_strategy import ExplorationStrategy, create_exploration_strategy
+from exploration_strategy import ExplorationStrategy
+from exploration_strategy.utils import create_exploration_strategy
 
 from .ReplayBuffer import ReplayBuffer
 

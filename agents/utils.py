@@ -1,4 +1,4 @@
-from .democratic_dwn import DemocraticDWL, DemocraticDWL_MaxAction, DemocraticDWL_RandomMaxAction, DemocraticDWL_MaxActionMaxQValue
+from .democratic_dwn import DemocraticDWL
 from .AbstractAgent import AbstractAgent
 from .dwn import DWL
 from .scaled_democratic import ScaledDemocraticDQN
@@ -18,10 +18,8 @@ agent_names = [
 
 
 def get_agent(agent_name: str, **kwargs) -> AbstractAgent:
-    if kwargs.get("scalarization_method", None) is not None:
-        kwargs["scalarization_method"] = get_scalarization_method(kwargs["scalarization_method"])
-    if kwargs.get("selected_policy", None) is not None:
-        kwargs["selected_policy"] = get_selected_policy(kwargs["selected_policy"])
+    if kwargs.get("scalarization", None) is not None:
+        kwargs["scalarization"] = get_scalarization_method(kwargs["scalarization"])
     if agent_name == "scaled_democratic":
         return ScaledDemocraticDQN(**kwargs)
     elif agent_name == "dwl":

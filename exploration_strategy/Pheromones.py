@@ -2,7 +2,7 @@ from typing import Callable, Any, Hashable
 import numpy as np
 
 from .ExplorationStrategy import ExplorationStrategy
-from utils import softmax
+from exploration_strategy.softmax import softmax
 
 MIN_PHEROMONE = 1.0
 NON_ZERO = 1e-6

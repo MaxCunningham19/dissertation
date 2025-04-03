@@ -1,4 +1,3 @@
-import copy
 import os
 
 import numpy as np
@@ -8,7 +7,6 @@ from exploration_strategy.DecayEpsilonGreedy import DecayEpsilonGreedy
 from exploration_strategy import ExplorationStrategy
 from agents.AbstractAgent import AbstractAgent
 from ..dwn_agent import DWN
-from ..dqn_agent import DQN
 
 
 class DWL(AbstractAgent):

@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import copy
 from exploration_strategy import ExplorationStrategy
 from agents.AbstractAgent import AbstractAgent
 from ..dqn_agent import DQN
@@ -50,6 +51,7 @@ class DemocraticDQN(AbstractAgent):
                     tau=tau,
                     memory_size=memory_size,
                     learning_rate=learning_rate,
+                    exploration_strategy=None,
                     gamma=gamma,
                     per_epsilon=per_epsilon,
                     beta_start=beta_start,
@@ -111,12 +113,13 @@ class DemocraticDQN(AbstractAgent):
         """Save all Q-networks"""
         for i in range(self.num_policies):
             self.agents[i].save_net(path + "Q" + str(i) + ".pt")
-            self.agents[i].save_exploration_strategy(path + "exploration_strategy" + str(i) + ".json")
+
+        self.exploration_strategy.save(path + "exploration_strategy.json")
 
     def load(self, path: str) -> None:
         """Load all Q-networks"""
         for i in range(self.num_policies):
             if os.path.exists(path + "Q" + str(i) + ".pt"):
                 self.agents[i].load_net(path + "Q" + str(i) + ".pt")
-            if os.path.exists(path + "exploration_strategy" + str(i) + ".json"):
-                self.agents[i].load_exploration_strategy(path + "exploration_strategy" + str(i) + ".json")
+
+        self.exploration_strategy.load(path + "exploration_strategy.json")

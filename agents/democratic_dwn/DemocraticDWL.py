@@ -3,12 +3,7 @@ import numpy as np
 from action_scalarization import ActionScalarization
 from agents.democratic_dwn.SelectedPolicy import SelectedPolicy
 from agents.dwn import DWL
-from exploration_strategy.Greedy import Greedy
-from exploration_strategy.DecayEpsilonGreedy import DecayEpsilonGreedy
 from exploration_strategy import ExplorationStrategy
-from agents.AbstractAgent import AbstractAgent
-from ..dwn_agent import DWN
-from ..dqn_agent import DQN
 
 
 class DemocraticDWL(DWL):

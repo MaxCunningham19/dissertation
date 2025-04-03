@@ -2,7 +2,7 @@ from typing import Callable, Any, Hashable
 import numpy as np
 
 from .ExplorationStrategy import ExplorationStrategy
-from utils import softmax
+from exploration_strategy.softmax import softmax
 
 
 class Counts(ExplorationStrategy):

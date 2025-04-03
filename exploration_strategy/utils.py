@@ -1,3 +1,5 @@
+import json
+import os
 from .Greedy import Greedy
 from .ExplorationStrategy import ExplorationStrategy
 from .Boltzmann import Boltzmann
@@ -33,6 +35,24 @@ def create_exploration_strategy(strategy_name: str, **kwargs) -> ExplorationStra
         kwargs["state_map"] = StateMapGenerator.get_function(kwargs["state_map"])
 
     return strategies[strategy_name](**kwargs)  # initialize with provided arguments
+
+
+def create_exploration_strategy_from_file(path: str) -> ExplorationStrategy:
+    """Creates an instance of an exploration strategy given its name."""
+
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r") as f:
+            info_dict = json.load(f)
+        strategy_name = info_dict.pop("strategy_name")
+
+        if "state_map" in info_dict:
+            info_dict["state_map"] = StateMapGenerator.get_function(info_dict["state_map"])
+
+        return strategies[strategy_name](**info_dict)  # initialize with provided arguments
+    except Exception as e:
+        return None
 
 
 class StateMapGenerator:

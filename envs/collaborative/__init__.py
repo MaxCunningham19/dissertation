@@ -1,3 +1,3 @@
 from gymnasium.envs.registration import register
 
-register(id="simplemoenv", entry_point="envs.collaborative.collaborative:TestSimpleMOEnv", nondeterministic=False)
+register(id="mo-collaborative-env", entry_point="envs.collaborative.collaborative:TestSimpleMOEnv", nondeterministic=False)
