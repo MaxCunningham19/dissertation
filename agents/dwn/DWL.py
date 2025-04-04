@@ -87,8 +87,12 @@ class DWL(AbstractAgent):
         w_values = []
         for agent in self.agents:
             w_values.append(agent.get_w_value(x))
+        print(x)
+        print(w_values)
         softmax_w_values = softmax(w_values)
+        print(softmax_w_values)
         softmax_w_values = softmax_w_values * human_preference
+        print(softmax_w_values)
         return softmax_w_values
 
     def get_action(self, x, human_preference: np.ndarray | None = None) -> tuple[int, dict]:
@@ -96,6 +100,7 @@ class DWL(AbstractAgent):
         w_values = self.get_w_values(x, human_preference)
         policy_sel = self.w_exploration_strategy.get_action(w_values, x)
         sel_action = self.agents[policy_sel].get_action(x)
+        print(policy_sel, sel_action, "\n")
         return sel_action, {"policy_sel": policy_sel, "w_values": w_values}
 
     def get_actions(self, x, human_preference: np.ndarray | None = None) -> np.ndarray:
@@ -153,12 +158,15 @@ class DWL(AbstractAgent):
         if os.path.exists(path + "w_exploration_strategy.json") and self.w_exploration_strategy is not None:
             self.w_exploration_strategy.load(path + "w_exploration_strategy.json")
 
-    def get_objective_info(self, x):
+    def get_objective_info(self, x, human_preference: np.ndarray | None = None):
         """This is used to get info from each agent regarding the state x"""
-        state_values = []
+        if human_preference is None:
+            human_preference = np.ones(self.num_policies)
 
-        for agent in self.agents:
+        state_values = []
+        for i, agent in enumerate(self.agents):
             q_values = agent.get_actions(x)
+            q_values = np.array(q_values) * human_preference[i]
             state_values.append(q_values)
 
         return state_values

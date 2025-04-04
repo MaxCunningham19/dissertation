@@ -46,6 +46,6 @@ class AbstractAgent(ABC):
         pass
 
     @abstractmethod
-    def get_objective_info(self, x) -> list[list[float]]:
+    def get_objective_info(self, x, human_preference: np.ndarray | None = None) -> list[np.ndarray]:
         """Get all action values in state x for each objective"""
         pass

@@ -20,6 +20,7 @@ from utils import generate_file_structure, kwargs_to_string
 
 parser = build_parser()
 parser.add_argument("--env", type=str, required=True, help="the environment to run")
+parser.add_argument("--env_kwargs", type=str, nargs="*", help="environment kwargs")
 parser.add_argument("--w_exploration", type=str, default="epsilon", help="w_value exploration strategy for deciding which action to take")
 parser.add_argument(
     "--w_exploration_kwargs",
@@ -38,8 +39,10 @@ interval = num_episodes // num_episodes_to_record
 if interval == 0:
     interval = 1
 
-
-env = mo_gym.make(args.env, render_mode="rgb_array", max_episode_steps=args.max_steps)
+env_kwargs = extract_kwargs(args.env_kwargs)
+if "max_episode_steps" not in env_kwargs:
+    env_kwargs["max_episode_steps"] = args.max_steps
+env = mo_gym.make(args.env, render_mode="rgb_array", **env_kwargs)
 n_state = env.observation_space.shape[0]
 n_action = env.action_space.n
 n_policy = env.unwrapped.reward_space.shape[0]
@@ -65,7 +68,7 @@ if args.path_to_load_model is not None and len(args.path_to_load_model) > 0:
 
 
 results_dir, images_dir, models_dir, videos_dir = generate_file_structure(
-    args.env, "", args.model, kwargs_to_string(model_kwargs), args.exploration, kwargs_to_string(args.exploration_kwargs)
+    args.env, kwargs_to_string(env_kwargs), args.model, kwargs_to_string(model_kwargs), args.exploration, kwargs_to_string(args.exploration_kwargs)
 )
 results_path = f"{results_dir}/results.csv"
 start_episode = 0

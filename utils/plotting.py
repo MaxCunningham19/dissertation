@@ -6,7 +6,35 @@ from agents.AbstractAgent import AbstractAgent
 from .utils import softmax
 
 
-def plot_agent_actions_2d(
+def smooth(array, window_size=1):
+    """Calculates a smoothed moving average of the array"""
+    smoothed_rewards = np.convolve(array, np.ones(window_size) / window_size, mode="valid")
+    return smoothed_rewards
+
+
+def plot_over_time_multiple_subplots(
+    n_policy, values_to_plot, label=None, color="red", colors=None, xlabel="", ylabel="", titles=None, save_path: str = None, plot: bool = False
+):
+    """Plots the values of each individual policy over multiple iterations in multiple subplots"""
+    _, axes = plt.subplots(n_policy, 1)
+    for i, current_values in enumerate(values_to_plot):
+        x_values = np.arange(len(current_values))
+        if not colors is None and len(colors) == n_policy:
+            color = colors[i]
+        axes[i].plot(x_values, current_values, label=label, color=color)
+        axes[i].set_xlabel(xlabel)
+        axes[i].set_ylabel(ylabel)
+        if not titles is None and len(titles) == n_policy:
+            axes[i].set_title(titles[i])
+
+    plt.tight_layout()
+    if save_path is not None:
+        plt.savefig(save_path, dpi=500)
+    if plot:
+        plt.show()
+
+
+def plot_agent_objective_q_values(
     states: list[list],
     agent,
     n_action,
@@ -60,51 +88,21 @@ def plot_agent_actions_2d(
             if should_plot(state):
                 agent_info = agent.get_objective_info(state)
                 for i, info in enumerate(agent_info):
-                    advantages = info - np.mean(info)
-                    soft_array = softmax(advantages)
 
                     offset = negative_offset + (i) * (bar_width_single)
-                    bar = current_ax.bar(xs + offset, soft_array, width=bar_width_single, label=objective_labels[i], color=colors[i], alpha=0.7)
+                    bar = current_ax.bar(xs + offset, agent_info[i], width=bar_width_single, label=objective_labels[i], color=colors[i], alpha=0.7)
                     legend[objective_labels[i]] = bar
 
     plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
     plt.figlegend(legend.values(), legend.keys(), loc="lower center", ncol=n_policy, bbox_to_anchor=(0.5, 0.02), fontsize=8)
     plt.title(f"{title}")
     if save_path is not None:
-        plt.savefig(save_path, dpi=500)
+        plt.savefig(f"{save_path}/objective_q_values.png", dpi=500)
     if plot:
         plt.show()
 
 
-def smooth(array, window_size=1):
-    """Calculates a smoothed moving average of the array"""
-    smoothed_rewards = np.convolve(array, np.ones(window_size) / window_size, mode="valid")
-    return smoothed_rewards
-
-
-def plot_over_time_multiple_subplots(
-    n_policy, values_to_plot, label=None, color="red", colors=None, xlabel="", ylabel="", titles=None, save_path: str = None, plot: bool = False
-):
-    """Plots the values of each individual policy over multiple iterations in multiple subplots"""
-    _, axes = plt.subplots(n_policy, 1)
-    for i, current_values in enumerate(values_to_plot):
-        x_values = np.arange(len(current_values))
-        if not colors is None and len(colors) == n_policy:
-            color = colors[i]
-        axes[i].plot(x_values, current_values, label=label, color=color)
-        axes[i].set_xlabel(xlabel)
-        axes[i].set_ylabel(ylabel)
-        if not titles is None and len(titles) == n_policy:
-            axes[i].set_title(titles[i])
-
-    plt.tight_layout()
-    if save_path is not None:
-        plt.savefig(save_path, dpi=500)
-    if plot:
-        plt.show()
-
-
-def plot_agent_actions_2d_seperated(
+def plot_agent_objective_q_values_seperated(
     states: list[list],
     agent: AbstractAgent,
     n_action,
@@ -122,10 +120,8 @@ def plot_agent_actions_2d_seperated(
     if objective_labels is None:
         objective_labels = [f"{i}" for i in range(n_policy)]
 
-    colors = plt.cm.viridis(np.linspace(0, 1, n_policy + 1))
+    colors = plt.cm.viridis(np.linspace(0, 1, n_policy))
     xs = np.arange(n_action)
-
-    # Handle single subplot case
 
     for i in range(n_policy):
         fig, axes = plt.subplots(len(states), len(states[0]))
@@ -157,12 +153,12 @@ def plot_agent_actions_2d_seperated(
 
         plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
         if save_path is not None:
-            plt.savefig(f"{save_path}/objective_{objective_labels[i]}_q_values.png", dpi=500)
+            plt.savefig(f"{save_path}/q_values_objective_{objective_labels[i]}.png", dpi=500)
         if plot:
             plt.show()
 
 
-def plot_summed_q_values(
+def plot_agent_q_values(
     states: list[list],
     agent: AbstractAgent,
     n_action,
@@ -178,7 +174,6 @@ def plot_summed_q_values(
         return
     if objective_labels is None:
         objective_labels = [f"{i}" for i in range(n_policy)]
-    colors = plt.cm.viridis(np.linspace(0, 1, n_policy + 1))
     xs = np.arange(n_action)
     fig, axes = plt.subplots(len(states), len(states[0]))
     if not hasattr(axes, "__len__"):
@@ -197,13 +192,13 @@ def plot_summed_q_values(
                 current_ax.set_xlabel(f"{x}")
             if should_plot(state):
                 action_values = agent.get_actions(state)
-                bar = current_ax.bar(xs, action_values, width=bar_width, color=colors[0], alpha=0.7)
+                bar = current_ax.bar(xs, action_values, width=bar_width, alpha=0.7)
                 for rect in bar:
                     height = rect.get_height()
                     current_ax.text(rect.get_x() + rect.get_width() / 2.0, height, f"{height:.2f}", ha="center", va="bottom", fontsize=5)
     plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
     if save_path is not None:
-        plt.savefig(f"{save_path}/summed_q_values.png", dpi=500)
+        plt.savefig(f"{save_path}/q_values.png", dpi=500)
     if plot:
         plt.show()
     plt.close()
@@ -264,43 +259,7 @@ def plot_agent_w_values(
         plt.show()
 
 
-def plot_state_actions(
-    states: list[list],
-    agent: AbstractAgent,
-    n_policy,
-    save_path: str = None,
-    plot: bool = False,
-    action_labels: list[str] | None = None,
-    should_plot: lambda state: bool = lambda state: True,
-):
-    fig, axes = plt.subplots(len(states), len(states[0]))
-    if not hasattr(axes, "__len__"):
-        axes = [axes]
-    else:
-        axes = axes.flatten()
-    for y, row in enumerate(states):
-        for x, state in enumerate(row):
-            current_ax = axes[y * len(states[0]) + x]
-            current_ax.set_xticks([])
-            current_ax.set_yticks([])
-            if x == 0:
-                current_ax.set_ylabel(f"{y}")
-            if y == len(states) - 1:
-                current_ax.set_xlabel(f"{x}")
-            if should_plot(state):
-                action, _ = agent.get_action(state)
-                print(f"action: {action}")
-                current_ax.text(0.5, 0.5, f"{action_labels[action]}", ha="center", va="center", fontsize=8)
-
-    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
-    plt.savefig(f"{save_path}/selected_actions.png", dpi=500)
-    if plot:
-        plt.show()
-
-    plt.close()
-
-
-def plot_state_actions(
+def plot_agent_actions(
     states: list[list],
     agent: AbstractAgent,
     n_actions: int,
@@ -331,13 +290,15 @@ def plot_state_actions(
             if should_plot(state):
                 objective_actions = agent.get_objective_info(state)
                 action, _ = agent.get_action(state)
+                all_actions = agent.get_actions(state)
+                selected_action_value = all_actions[action]
 
                 max_obj_idx = np.argmax([obj_acts[action] for obj_acts in objective_actions])
                 current_ax.set_facecolor(colors[max_obj_idx])
                 current_ax.text(0.5, 0.5, f"{action_labels[action]}", ha="center", va="center", fontsize=8)
 
     plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
-    plt.savefig(f"{save_path}/selected_actions.png", dpi=500)
+    plt.savefig(f"{save_path}/actions.png", dpi=500)
     if plot:
         plt.show()
 

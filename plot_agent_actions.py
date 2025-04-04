@@ -2,7 +2,7 @@ import os
 import torch
 from agents.utils import get_agent
 from exploration_strategy.utils import create_exploration_strategy
-from utils.plotting import plot_agent_actions_2d, plot_agent_actions_2d_seperated, plot_state_actions, plot_summed_q_values
+from utils.plotting import plot_agent_actions, plot_agent_objective_q_values, plot_agent_objective_q_values_seperated, plot_agent_q_values
 
 import argparse
 import gym
@@ -71,39 +71,40 @@ if "deep-sea-treasure" in args.env:
             state_row.append(np.array([row, col]))
         states.append(state_row)
 
-print(states)
-plot_agent_actions_2d(
+plot_agent_objective_q_values(
     states,
     agent,
     n_action,
     n_policy,
-    save_path=f"{args.images_dir}/actions.png",
+    save_path=f"{args.images_dir}",
     plot=args.plot,
     objective_labels=args.objective_labels,
-    should_plot=lambda state: env.unwrapped._is_valid_state((state[1], state[0])),
+    should_plot=lambda state: env.unwrapped._is_valid_state(state),
 )
 
-plot_agent_actions_2d_seperated(
+plot_agent_objective_q_values_seperated(
+    states,
+    agent,
+    n_action,
+    n_policy,
+    save_path=f"{args.images_dir}",
+    objective_labels=args.objective_labels,
+    plot=args.plot,
+    should_plot=lambda state: env.unwrapped._is_valid_state(state),
+)
+
+plot_agent_q_values(
     states,
     agent,
     n_action,
     n_policy,
     save_path=f"{args.images_dir}",
     plot=args.plot,
-    should_plot=lambda state: env.unwrapped._is_valid_state((state[1], state[0])),
+    objective_labels=args.objective_labels,
+    should_plot=lambda state: env.unwrapped._is_valid_state(state),
 )
 
-plot_summed_q_values(
-    states,
-    agent,
-    n_action,
-    n_policy,
-    save_path=f"{args.images_dir}",
-    plot=args.plot,
-    should_plot=lambda state: env.unwrapped._is_valid_state((state[1], state[0])),
-)
-
-plot_state_actions(
+plot_agent_actions(
     states,
     agent,
     n_action,
@@ -111,7 +112,7 @@ plot_state_actions(
     save_path=f"{args.images_dir}",
     plot=args.plot,
     action_labels=args.action_labels,
-    should_plot=lambda state: env.unwrapped._is_valid_state((state[1], state[0])),
+    should_plot=lambda state: env.unwrapped._is_valid_state(state),
 )
 
 env.close()
