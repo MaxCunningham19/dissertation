@@ -107,6 +107,7 @@ plot_state_actions(
     states,
     agent,
     n_action,
+    n_policy,
     save_path=f"{args.images_dir}",
     plot=args.plot,
     action_labels=args.action_labels,

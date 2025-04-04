@@ -225,7 +225,7 @@ def plot_agent_w_values(
     if objective_labels is None:
         objective_labels = [f"objective {i}" for i in range(n_policy)]
 
-    colors = plt.cm.viridis(np.linspace(0, 1, n_policy + 1))
+    colors = plt.cm.viridis(np.linspace(0, 1, n_policy))
     lines = []
     labels = []
 
@@ -303,7 +303,8 @@ def plot_state_actions(
 def plot_state_actions(
     states: list[list],
     agent: AbstractAgent,
-    n_actions,
+    n_actions: int,
+    n_policy: int,
     save_path: str = None,
     plot: bool = False,
     action_labels: list[str] | None = None,
@@ -312,6 +313,7 @@ def plot_state_actions(
     """Plots a grid of where the selected action is plotted for each state"""
     if action_labels is None:
         action_labels = [f"{i}" for i in range(n_actions)]
+    colors = plt.cm.viridis(np.linspace(0, 1, n_policy))
     fig, axes = plt.subplots(len(states), len(states[0]))
     if not hasattr(axes, "__len__"):
         axes = [axes]
@@ -327,7 +329,11 @@ def plot_state_actions(
             if y == len(states) - 1:
                 current_ax.set_xlabel(f"{x}")
             if should_plot(state):
+                objective_actions = agent.get_objective_info(state)
                 action, _ = agent.get_action(state)
+
+                max_obj_idx = np.argmax([obj_acts[action] for obj_acts in objective_actions])
+                current_ax.set_facecolor(colors[max_obj_idx])
                 current_ax.text(0.5, 0.5, f"{action_labels[action]}", ha="center", va="center", fontsize=8)
 
     plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
