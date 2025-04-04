@@ -7,6 +7,7 @@ from exploration_strategy.DecayEpsilonGreedy import DecayEpsilonGreedy
 from exploration_strategy import ExplorationStrategy
 from agents.AbstractAgent import AbstractAgent
 from ..dwn_agent import DWN
+from utils.utils import softmax
 
 
 class DWL(AbstractAgent):
@@ -86,7 +87,7 @@ class DWL(AbstractAgent):
         w_values = []
         for agent in self.agents:
             w_values.append(agent.get_w_value(x))
-        softmax_w_values = np.exp(w_values) / np.sum(np.exp(w_values))
+        softmax_w_values = softmax(w_values)
         softmax_w_values = softmax_w_values * human_preference
         return softmax_w_values
 
