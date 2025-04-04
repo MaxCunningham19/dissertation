@@ -36,7 +36,7 @@ def plot_over_time_multiple_subplots(
 
 def plot_agent_objective_q_values(
     states: list[list],
-    agent,
+    agent: AbstractAgent,
     n_action,
     n_policy,
     bar_width=0.2,
@@ -45,6 +45,7 @@ def plot_agent_objective_q_values(
     title: str = "",
     should_plot: lambda state: bool = lambda state: True,
     objective_labels: list[str] | None = None,
+    human_preference: np.ndarray | None = None,
 ):
     """Plots a grid of bar charts of the values of each action for each state"""
     if len(states) <= 0 or n_policy <= 0 or n_action <= 0:
@@ -86,7 +87,7 @@ def plot_agent_objective_q_values(
 
             idx = np.array([x, y])
             if should_plot(state):
-                agent_info = agent.get_objective_info(state)
+                agent_info = agent.get_objective_info(state, human_preference=human_preference)
                 for i, info in enumerate(agent_info):
 
                     offset = negative_offset + (i) * (bar_width_single)
@@ -112,6 +113,7 @@ def plot_agent_objective_q_values_seperated(
     plot: bool = False,
     objective_labels: list[str] | None = None,
     should_plot: lambda state: bool = lambda state: True,
+    human_preference: np.ndarray | None = None,
 ):
     """Plots a grid of bar charts of the values of each action for each state"""
     if len(states) <= 0 or n_policy <= 0 or n_action <= 0:
@@ -144,7 +146,7 @@ def plot_agent_objective_q_values_seperated(
 
                 idx = np.array([x, y])
                 if should_plot(state):
-                    agent_info = agent.get_objective_info(state)
+                    agent_info = agent.get_objective_info(state, human_preference=human_preference)
                     info = agent_info[i]
                     bar = current_ax.bar(xs, info, width=bar_width, color=colors[i], alpha=0.7)
                     for rect in bar:
@@ -168,6 +170,7 @@ def plot_agent_q_values(
     plot: bool = False,
     objective_labels: list[str] | None = None,
     should_plot: lambda state: bool = lambda state: True,
+    human_preference: np.ndarray | None = None,
 ):
     """Plots a grid of bar charts showing the summed Q-values for each action in each state"""
     if len(states) <= 0 or n_policy <= 0 or n_action <= 0:
@@ -191,8 +194,8 @@ def plot_agent_q_values(
             if y == len(states) - 1:
                 current_ax.set_xlabel(f"{x}")
             if should_plot(state):
-                action_values = agent.get_actions(state)
-                bar = current_ax.bar(xs, action_values, width=bar_width, alpha=0.7)
+                action_values = agent.get_actions(state, human_preference=human_preference)
+                bar = current_ax.bar(xs, action_values, width=bar_width)
                 for rect in bar:
                     height = rect.get_height()
                     current_ax.text(rect.get_x() + rect.get_width() / 2.0, height, f"{height:.2f}", ha="center", va="bottom", fontsize=5)
@@ -268,6 +271,7 @@ def plot_agent_actions(
     plot: bool = False,
     action_labels: list[str] | None = None,
     should_plot: lambda state: bool = lambda state: True,
+    human_preference: np.ndarray | None = None,
 ):
     """Plots a grid of where the selected action is plotted for each state"""
     if action_labels is None:
@@ -288,10 +292,8 @@ def plot_agent_actions(
             if y == len(states) - 1:
                 current_ax.set_xlabel(f"{x}")
             if should_plot(state):
-                objective_actions = agent.get_objective_info(state)
-                action, _ = agent.get_action(state)
-                all_actions = agent.get_actions(state)
-                selected_action_value = all_actions[action]
+                objective_actions = agent.get_objective_info(state, human_preference=human_preference)
+                action, _ = agent.get_action(state, human_preference=human_preference)
 
                 max_obj_idx = np.argmax([obj_acts[action] for obj_acts in objective_actions])
                 current_ax.set_facecolor(colors[max_obj_idx])

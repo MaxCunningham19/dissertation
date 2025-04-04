@@ -59,18 +59,20 @@ def generate_file_structure(
     formatted_env_kwargs = formatted_env_kwargs.replace("__", "/")
     env_tag = fnrp(env)
     if formatted_env_kwargs != "":
-        env_tag += f"_{formatted_env_kwargs}"
-
+        env_tag += f"/{formatted_env_kwargs}"
+    print(model_kwargs_string)
     formatted_model_kwargs = fnrp(model_kwargs_string)
+    print(formatted_model_kwargs)
     formatted_model_kwargs = formatted_model_kwargs.replace("__", "/")
+    print(formatted_model_kwargs)
     model_tag = fnrp(model)
     if formatted_model_kwargs != "":
-        model_tag += f"_{formatted_model_kwargs}"
+        model_tag += f"/{formatted_model_kwargs}"
 
     formatted_exploration_kwargs = fnrp(exploration_kwargs_string)
     exploration_tag = fnrp(exploration)
     if formatted_exploration_kwargs != "":
-        exploration_tag += f"_{formatted_exploration_kwargs}"
+        exploration_tag += f"/{formatted_exploration_kwargs}"
 
     model_tag = model_tag + "/" + exploration_tag
     results, images, models, videos = (

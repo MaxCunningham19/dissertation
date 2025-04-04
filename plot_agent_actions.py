@@ -27,6 +27,7 @@ parser.add_argument("--objective_labels", type=str, nargs="*", default=None, hel
 parser.add_argument("--action_labels", type=str, nargs="*", default=None, help="action labels")
 parser.add_argument("--images_dir", type=str, default=" ./images", help="images directory")
 parser.add_argument("--plot", action="store_true", default=False, help="plot the results")
+parser.add_argument("--human_preference", type=float, nargs="*", default=None, required=False, help="an array of human preferences of objectives")
 args = parser.parse_args()
 
 
@@ -80,6 +81,7 @@ plot_agent_objective_q_values(
     plot=args.plot,
     objective_labels=args.objective_labels,
     should_plot=lambda state: env.unwrapped._is_valid_state(state),
+    human_preference=args.human_preference,
 )
 
 plot_agent_objective_q_values_seperated(
@@ -91,6 +93,7 @@ plot_agent_objective_q_values_seperated(
     objective_labels=args.objective_labels,
     plot=args.plot,
     should_plot=lambda state: env.unwrapped._is_valid_state(state),
+    human_preference=args.human_preference,
 )
 
 plot_agent_q_values(
@@ -102,6 +105,7 @@ plot_agent_q_values(
     plot=args.plot,
     objective_labels=args.objective_labels,
     should_plot=lambda state: env.unwrapped._is_valid_state(state),
+    human_preference=args.human_preference,
 )
 
 plot_agent_actions(
@@ -113,6 +117,7 @@ plot_agent_actions(
     plot=args.plot,
     action_labels=args.action_labels,
     should_plot=lambda state: env.unwrapped._is_valid_state(state),
+    human_preference=args.human_preference,
 )
 
 env.close()

@@ -89,3 +89,6 @@ class ExplorationStrategy(ABC):
                 )
         except (json.JSONDecodeError, FileNotFoundError) as e:
             return
+
+    def __str__(self) -> str:
+        return self.__class__.__name__

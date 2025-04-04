@@ -87,12 +87,8 @@ class DWL(AbstractAgent):
         w_values = []
         for agent in self.agents:
             w_values.append(agent.get_w_value(x))
-        print(x)
-        print(w_values)
         softmax_w_values = softmax(w_values)
-        print(softmax_w_values)
         softmax_w_values = softmax_w_values * human_preference
-        print(softmax_w_values)
         return softmax_w_values
 
     def get_action(self, x, human_preference: np.ndarray | None = None) -> tuple[int, dict]:
@@ -100,7 +96,6 @@ class DWL(AbstractAgent):
         w_values = self.get_w_values(x, human_preference)
         policy_sel = self.w_exploration_strategy.get_action(w_values, x)
         sel_action = self.agents[policy_sel].get_action(x)
-        print(policy_sel, sel_action, "\n")
         return sel_action, {"policy_sel": policy_sel, "w_values": w_values}
 
     def get_actions(self, x, human_preference: np.ndarray | None = None) -> np.ndarray:
