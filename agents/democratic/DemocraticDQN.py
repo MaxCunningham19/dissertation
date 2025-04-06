@@ -77,12 +77,16 @@ class DemocraticDQN(AbstractAgent):
 
         return self.scalarization.scalarize(np.array(action_advantages), human_preference)
 
-    def get_objective_info(self, x):
+    def get_objective_info(self, x, human_preference: np.ndarray | None = None):
         """This is used to get info from each agent regarding the state x"""
+        if human_preference is None:
+            human_preference = np.ones(self.num_policies)
+
         state_values = []
 
         for i, agent in enumerate(self.agents):
-            q_values = agent.get_actions(x)
+            q_values = np.array(agent.get_actions(x))
+            q_values = q_values * human_preference[i]
             state_values.append(q_values)
 
         return state_values

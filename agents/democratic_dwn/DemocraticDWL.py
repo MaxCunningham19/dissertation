@@ -71,9 +71,8 @@ class DemocraticDWL(DWL):
         action_values = np.zeros(self.num_actions, dtype=np.float32)
         objective_action_values = np.zeros((self.num_policies, self.num_actions), dtype=np.float32)
         for i in range(self.num_policies):
-            action_values += np.array(self.agents[i].get_actions(x)) * w_values[i]
             objective_action_values[i] = np.array(self.agents[i].get_actions(x)) * w_values[i]
-
+        action_values = self.scalarization.scalarize(objective_action_values, w_values)
         return action_values, w_values, objective_action_values
 
     def policy_store_memory_selection(
@@ -91,13 +90,7 @@ class DemocraticDWL(DWL):
 
     def get_actions(self, x, human_preference: np.ndarray | None = None) -> np.ndarray:
         """Get all action values from the agent in state x"""
-        if human_preference is None:
-            human_preference = np.ones(self.num_policies)
-        w_values = self.get_w_values(x, human_preference)
-        action_values = np.zeros(self.num_actions, dtype=np.float32)
-        for i in range(self.num_policies):
-            action_values += np.array(self.agents[i].get_actions(x)) * w_values[i]
-
+        action_values, _, _ = self.get_action_and_w_values(x, human_preference)
         return action_values
 
     def store_memory(self, s, a, rewards, s_, d, info: dict) -> None:

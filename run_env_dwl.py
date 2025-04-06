@@ -68,7 +68,14 @@ if args.path_to_load_model is not None and len(args.path_to_load_model) > 0:
 
 
 results_dir, images_dir, models_dir, videos_dir = generate_file_structure(
-    args.env, kwargs_to_string(env_kwargs), args.model, kwargs_to_string(model_kwargs), args.exploration, kwargs_to_string(args.exploration_kwargs)
+    args.env,
+    kwargs_to_string(env_kwargs),
+    args.model,
+    kwargs_to_string(args.model_kwargs),
+    args.exploration,
+    kwargs_to_string(exploration_strategy.info()),
+    args.w_exploration,
+    kwargs_to_string(w_exploration_strategy.info()),
 )
 results_path = f"{results_dir}/results.csv"
 start_episode = 0
@@ -122,11 +129,10 @@ try:
                 episode_reward[j] = episode_reward[j] + reward[j]
 
         loss_info = agent.get_loss_values()
-        # Append new row to DataFrame
         df.loc[len(df)] = [i, episode_reward, loss_info]
 
         if i % 10 == 0:
-            print(f"Episode {i} completed")
+            print(f"Episode {i} completed  Reward {episode_reward}  Loss {loss_info}")
 
         if i % args.w_check_interval == 0:
             for row_idx in range(rows):
@@ -154,26 +160,41 @@ except (Exception, KeyboardInterrupt) as e:
 
 agent.save(f"{models_dir}")
 
-# Save DataFrame to CSV
 df.to_csv(results_path, index=False)
 
 
-# Before plotting, convert the string representations of lists to actual numpy arrays
-def parse_list_string(s):
+def parse_loss_string(s):
     try:
-        # Remove brackets and split by comma
-        s = s.strip("[]").split(",")
-        # Convert to float array
-        return np.array([float(x) for x in s])
+        tuples = s.strip("[]").split("),")
+        tuples = [t.strip().strip("()") for t in tuples]
+        return np.array([tuple(float(x.strip()) if x.strip() != "nan" else np.nan for x in t.split(",")) for t in tuples])
     except:
-        return np.array([np.nan, np.nan])  # Return nan array if parsing fails
+        return np.array([(np.nan, np.nan), (np.nan, np.nan)])
 
 
 df = pd.read_csv(results_path)
-loss_arrays = df["loss"].apply(parse_list_string).values
-loss = np.array([x for x in loss_arrays]).T
+loss_arrays = df["loss"].apply(parse_loss_string).values
 
-plot_over_time_multiple_subplots(n_policy, loss, save_path=f"{images_dir}/loss.png", plot=args.plot)
+q_loss, w_loss = [], []
+for x in loss_arrays:
+    q_loss.append([x[0][0], x[1][0]])
+    w_loss.append([x[0][1], x[1][1]])
+
+q_loss = np.array(q_loss).T
+w_loss = np.array(w_loss).T
+
+plot_over_time_multiple_subplots(n_policy, q_loss, save_path=f"{images_dir}/q_loss.png", plot=args.plot)
+
+plot_over_time_multiple_subplots(n_policy, w_loss, save_path=f"{images_dir}/w_loss.png", plot=args.plot)
+
+
+def parse_list_string(s):
+    try:
+        s = s.strip("[]").split(",")
+        return np.array([float(x) for x in s])
+    except:
+        return np.array([np.nan, np.nan])
+
 
 episode_rewards_arrays = df["episode_reward"].apply(parse_list_string).values
 episode_rewards = np.array([x for x in episode_rewards_arrays]).T
@@ -194,7 +215,6 @@ for state, values in valid_w_values.items():
     for obj_idx, valuez in values.items():
         len_w_values_data = max(len_w_values_data, len(valuez))
 
-# Create empty array to store values
 w_values_array = []
 row_idx = 0
 for state, values in valid_w_values.items():
@@ -208,8 +228,7 @@ for state, values in valid_w_values.items():
         w_values_array.append(row)
         row_idx += 1
 
-print(w_values_array)
-# Create column names for objectives
+
 column_names = ["state", "timestep"] + [f"objective_{i}" for i in range(n_policy)]
 
 w_values_df = pd.DataFrame(w_values_array, columns=column_names)

@@ -56,10 +56,11 @@ class ChebyshevScalarization(ActionScalarization):
         return -scalarized_rewards
 
 
+SCALARIZATION_METHODS = {"linear": LinearScalarization, "chebyshev": ChebyshevScalarization}
+
+
 def get_scalarization_method(method_name: str) -> ActionScalarization:
-    if method_name == "linear":
-        return LinearScalarization
-    elif method_name == "chebyshev":
-        return ChebyshevScalarization
-    else:
-        raise ValueError(f"Invalid scalarization method: {method_name}")
+    scalarization_method = SCALARIZATION_METHODS.get(method_name, None)
+    if scalarization_method is None:
+        raise ValueError(f"Invalid scalarization method: {method_name}, must be one of {list(SCALARIZATION_METHODS.keys())}")
+    return scalarization_method

@@ -48,7 +48,14 @@ def fnrp(string: str) -> str:
 
 
 def generate_file_structure(
-    env: str, env_kwargs_string: str, model: str, model_kwargs_string: str, exploration: str, exploration_kwargs_string: str
+    env: str,
+    env_kwargs_string: str,
+    model: str,
+    model_kwargs_string: str,
+    exploration: str,
+    exploration_kwargs_string: str,
+    w_exploration: str = "",
+    w_exploration_kwargs_string: str = "",
 ) -> tuple[str, str, str]:
     """
     Generates a file structure
@@ -73,6 +80,13 @@ def generate_file_structure(
     exploration_tag = fnrp(exploration)
     if formatted_exploration_kwargs != "":
         exploration_tag += f"/{formatted_exploration_kwargs}"
+
+    formatted_w_exploration_kwargs = fnrp(w_exploration_kwargs_string)
+    w_exploration_tag = fnrp(w_exploration)
+    if formatted_w_exploration_kwargs != "":
+        w_exploration_tag += f"/{formatted_w_exploration_kwargs}"
+    if w_exploration_tag != "":
+        exploration_tag += f"/{w_exploration_tag}"
 
     model_tag = model_tag + "/" + exploration_tag
     results, images, models, videos = (

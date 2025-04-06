@@ -63,9 +63,10 @@ states = []
 for row in range(rows):
     state_row = []
     for col in range(cols):
-        state_row.append(np.array([row, col]))
+        state_row.append(np.array([col, row]))
     states.append(state_row)
 if "deep-sea-treasure" in args.env:
+    states = []
     for row in range(rows):
         state_row = []
         for col in range(cols):
