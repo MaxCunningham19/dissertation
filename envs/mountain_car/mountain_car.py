@@ -89,3 +89,8 @@ class MOMountainCar(MountainCarEnv, EzPickle):
         if self.render_mode == "human":
             self.render()
         return np.array(self.state, dtype=np.float32), reward, terminated, False, {}
+
+    def _is_valid_state(self, state) -> bool:
+        """Check if a state is valid within the environment's bounds."""
+        position, velocity = state
+        return self.min_position <= position <= self.max_position and -self.max_speed <= velocity <= self.max_speed

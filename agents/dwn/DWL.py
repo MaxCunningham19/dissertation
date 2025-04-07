@@ -177,9 +177,7 @@ class DWL(AbstractAgent):
 
     def softmax(self, x) -> np.ndarray:
         if isinstance(x, torch.Tensor):
-            if x.is_cuda:
-                x = x.cpu()
-            x = x.numpy()
+            x = x.detach().cpu().numpy()
         x = np.asarray(x).flatten()
         e_x = np.exp(x - np.max(x))
         return e_x / e_x.sum()

@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from exploration_strategy import ExplorationStrategy
-from exploration_strategy.utils import create_exploration_strategy
+from exploration_strategy.utils import create_exploration_strategy, create_exploration_strategy_from_file
 from .ReplayBuffer import ReplayBuffer
 
 
@@ -93,10 +93,8 @@ class DQN(object):
             action_values = self.policy_net(state)
 
         if isinstance(action_values, torch.Tensor):
-            if action_values.is_cuda:
-                action_values = action_values.cpu()
-            action_values = action_values.numpy()
-        action_values = action_values.flatten()
+            action_values = action_values.detach().cpu().numpy()
+        action_values = np.array(action_values).flatten()
 
         return action_values.tolist()
 
@@ -118,7 +116,11 @@ class DQN(object):
         """Train the model from the ReplayBuffe then update parameters"""
         if len(self.replayMemory) > self.batch_size:
             (states, actions, rewards, next_states, probabilities, experiences_idx, dones) = self.replayMemory.sample()
-
+            states = states.to(self.device)
+            actions = actions.to(self.device)
+            rewards = rewards.to(self.device)
+            next_states = next_states.to(self.device)
+            dones = dones.to(self.device)
             current_qs = self.policy_net(states).gather(1, actions)
             next_actions = self.policy_net(next_states).detach().max(1)[1].unsqueeze(1)
             max_next_qs = self.target_net(next_states).detach().gather(1, next_actions)

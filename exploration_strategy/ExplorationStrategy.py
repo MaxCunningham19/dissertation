@@ -17,9 +17,7 @@ class ExplorationStrategy(ABC):
         Returns the index of the action
         """
         if isinstance(actions, torch.Tensor):
-            if actions.is_cuda:
-                actions = actions.cpu()
-            actions = actions.numpy()
+            actions = actions.detach().cpu().numpy()
         actions = np.array(actions).flatten()
         if type(actions).__name__ != "ndarray":
             return -1
