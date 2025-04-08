@@ -10,6 +10,27 @@ from exploration_strategy.utils import create_exploration_strategy_from_file
 from .ReplayBuffer import ReplayBuffer
 
 
+class DuelingQN(nn.Module):
+    """
+    Basic Model of a Q network
+    """
+
+    def __init__(self, state_number, hidlyr_nodes, action_number):
+        super(DuelingQN, self).__init__()
+        self.fc1 = nn.Linear(state_number, hidlyr_nodes)  # first conected layer
+        self.fc2 = nn.Linear(hidlyr_nodes, hidlyr_nodes * 2)  # second conected layer
+        self.values = nn.Linear(hidlyr_nodes * 2, 1)  # output layer for value function
+        self.advantages = nn.Linear(hidlyr_nodes * 2, action_number)  # output layer
+
+    def forward(self, state):
+        x = F.relu(self.fc1(state))  # relu activation of fc1
+        x = F.relu(self.fc2(x))  # relu activation of fc2
+        values = self.values(x)  # calculate value function
+        advantages = self.advantages(x)  # calculate action values
+        x = values + (advantages - advantages.mean())  # combine value and action values
+        return x
+
+
 class QN(nn.Module):
     """
     Basic Model of a Q network
@@ -19,16 +40,12 @@ class QN(nn.Module):
         super(QN, self).__init__()
         self.fc1 = nn.Linear(state_number, hidlyr_nodes)  # first conected layer
         self.fc2 = nn.Linear(hidlyr_nodes, hidlyr_nodes * 2)  # second conected layer
-        self.fc3 = nn.Linear(hidlyr_nodes * 2, hidlyr_nodes * 4)  # third conected layer
-        self.fc4 = nn.Linear(hidlyr_nodes * 4, hidlyr_nodes * 8)  # fourth conected layer
-        self.out = nn.Linear(hidlyr_nodes * 8, action_number)  # output layer
+        self.out = nn.Linear(hidlyr_nodes * 2, action_number)  # output layer
 
     def forward(self, state):
         x = F.relu(self.fc1(state))  # relu activation of fc1
         x = F.relu(self.fc2(x))  # relu activation of fc2
-        x = F.relu(self.fc3(x))  # relu activation of fc3
-        x = F.relu(self.fc4(x))  # relu activation of fc4
-        x = self.out(x)  # calculate output
+        x = self.out(x)  # calculate action values
         return x
 
 
@@ -77,14 +94,13 @@ class DWN(object):
 
         self.q_episode_loss = []
 
-        self.policy_net = QN(self.num_states, hidlyr_nodes, self.num_actions)
-        self.target_net = QN(self.num_states, hidlyr_nodes, self.num_actions)
+        self.policy_net = DuelingQN(self.num_states, hidlyr_nodes, self.num_actions)
+        self.target_net = DuelingQN(self.num_states, hidlyr_nodes, self.num_actions)
         self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=learning_rate)
 
         # Learning parameters for W learning net
-
-        self.wnetwork_local = QN(self.num_states, hidlyr_nodes, 1).to(device)
-        self.wnetwork_target = QN(self.num_states, hidlyr_nodes, 1).to(device)
+        self.wnetwork_local = DuelingQN(self.num_states, hidlyr_nodes, 1).to(device)
+        self.wnetwork_target = DuelingQN(self.num_states, hidlyr_nodes, 1).to(device)
         self.optimizer_w = torch.optim.Adam(self.wnetwork_local.parameters(), lr=self.learning_rate)
         # Init the W net learning parameters and replay buffer
         self.memory_w = ReplayBuffer(action_size=self.num_actions, buffer_size=self.memory_size, batch_size=self.batch_size, seed=self.random_seed)

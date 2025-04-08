@@ -24,5 +24,5 @@ def build_parser():
     )
 
     parser.add_argument("--max_steps", type=int, default=100, help="max episode steps")
-
+    parser.add_argument("--print_interval", type=int, default=10, help="interval to print episode reward and loss to the model")
     return parser

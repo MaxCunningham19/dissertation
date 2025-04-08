@@ -110,7 +110,7 @@ if args.w_check_interval != 0:
                 state_row.append(np.array([col, row]))
             else:
                 state_row.append(np.array([row, col]))
-            states.append(state_row)
+        states.append(state_row)
 
     w_values: dict[tuple[int, int], dict[int, list[np.float64]]] = {tuple(state): {k: [] for k in range(n_policy)} for row in states for state in row}
     if args.path_to_load_model is not None and len(args.path_to_load_model) > 0:
@@ -127,14 +127,12 @@ if args.w_check_interval != 0:
 if args.record:
     env = RecordVideo(env, videos_dir, episode_trigger=lambda e: (e + start_episode) % interval == 0, name_prefix=f"episode_{start_episode}")
 
-
 try:
     for i in range(start_episode, num_episodes):
         episode_reward = [0.0] * n_policy
         done = truncated = False
 
         obs, _ = env.reset()
-        s = 0
         while not (done or truncated):
             action, info = agent.get_action(obs)
             obs_, reward, done, truncated, _ = env.step(action)
@@ -142,14 +140,10 @@ try:
             obs = obs_
             for j in range(n_policy):
                 episode_reward[j] = episode_reward[j] + reward[j]
-
-            if s % 50 == 0:
-                agent.train()
-            s += 1
         loss_info = agent.get_loss_values()
         df.loc[len(df)] = [i, episode_reward, loss_info]
 
-        if i % 10 == 0:
+        if i % args.print_interval == 0:
             print(f"Episode {i} completed  Reward {episode_reward}  Loss {loss_info}")
 
         if args.w_check_interval != 0 and i % args.w_check_interval == 0:
