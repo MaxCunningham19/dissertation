@@ -295,7 +295,6 @@ def plot_agent_actions(
                 objective_actions = agent.get_objective_info(state, human_preference=human_preference)
                 action, info = agent.get_action(state, human_preference=human_preference)
 
-                print(state, objective_actions, action, info)
                 max_obj_idx = np.argmax([obj_acts[action] for obj_acts in objective_actions])
                 current_ax.set_facecolor(colors[max_obj_idx])
                 current_ax.text(0.5, 0.5, f"{action_labels[action]}", ha="center", va="center", fontsize=8)

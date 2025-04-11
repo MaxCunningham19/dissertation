@@ -21,4 +21,4 @@ class ScaledDemocraticDQN(DemocraticDQN):
             scaled_q_values = self.softmax(q_values)
             action_advantages[i] = scaled_q_values
 
-        return self.scalarization.scalarize(action_advantages, human_preference)
+        return self.scalarization.scalarize(np.array(action_advantages), human_preference)

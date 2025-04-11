@@ -120,6 +120,7 @@ class DQN(object):
             rewards = rewards.to(self.device)
             next_states = next_states.to(self.device)
             dones = dones.to(self.device)
+
             current_qs = self.policy_net(states).gather(1, actions)
             next_actions = self.policy_net(next_states).detach().max(1)[1].unsqueeze(1)
             max_next_qs = self.target_net(next_states).detach().gather(1, next_actions)

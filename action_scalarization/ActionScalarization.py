@@ -47,11 +47,14 @@ class ChebyshevScalarization(ActionScalarization):
         if human_preference is None:
             human_preference = np.ones(action_values.shape[0])
         weights = np.array(human_preference)
-
+        num_objectives, num_actions = len(action_values), len(action_values[0])
         ideal_rewards = np.max(action_values, axis=1)  # ideal reward for each objective
 
-        deviations = weights[:, None] * np.abs(ideal_rewards[:, None] - action_values)
-        scalarized_rewards = np.max(deviations, axis=0)
+        scalarized_rewards = np.zeros(num_actions)
+        for action in range(num_actions):
+            deviations = np.abs(action_values[:, action] - ideal_rewards)
+            weighted_deviations = human_preference * deviations
+            scalarized_rewards[action] = np.max(weighted_deviations)
 
         return -scalarized_rewards
 

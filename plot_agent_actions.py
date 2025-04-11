@@ -1,5 +1,9 @@
 import os
 import torch
+import warnings
+
+warnings.filterwarnings("ignore")
+
 from agents.utils import get_agent
 from exploration_strategy.utils import create_exploration_strategy
 from utils.plotting import plot_agent_actions, plot_agent_objective_q_values, plot_agent_objective_q_values_seperated, plot_agent_q_values
@@ -25,7 +29,7 @@ parser.add_argument(
 )
 parser.add_argument("--objective_labels", type=str, nargs="*", default=None, help="objective labels")
 parser.add_argument("--action_labels", type=str, nargs="*", default=None, help="action labels")
-parser.add_argument("--images_dir", type=str, default=" ./images", help="images directory")
+parser.add_argument("--images_dir", type=str, default="images", help="images directory")
 parser.add_argument("--plot", action="store_true", default=False, help="plot the results")
 parser.add_argument("--human_preference", type=float, nargs="*", default=None, required=False, help="an array of human preferences of objectives")
 args = parser.parse_args()

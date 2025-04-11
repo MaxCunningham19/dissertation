@@ -54,7 +54,6 @@ if torch.backends.mps.is_available():
     device = torch.device("mps")
 elif torch.cuda.is_available():
     device = torch.device("cuda:0")
-print(device)
 exploration_strategy = create_exploration_strategy(args.exploration, **extract_kwargs(args.exploration_kwargs))
 w_exploration_strategy = create_exploration_strategy(args.w_exploration, **extract_kwargs(args.w_exploration_kwargs))
 model_kwargs = extract_kwargs(args.model_kwargs)
@@ -127,7 +126,6 @@ if args.w_check_interval != 0:
 if args.record:
     env = RecordVideo(env, videos_dir, episode_trigger=lambda e: (e + start_episode) % interval == 0, name_prefix=f"episode_{start_episode}")
 
-human_preference = np.array([0.5, 0.5])
 try:
     for i in range(start_episode, num_episodes):
         episode_reward = [0.0] * n_policy
@@ -135,7 +133,7 @@ try:
 
         obs, _ = env.reset()
         while not (done or truncated):
-            action, info = agent.get_action(obs, human_preference)
+            action, info = agent.get_action(obs)
             obs_, reward, done, truncated, _ = env.step(action)
             # print(obs, action, obs_, reward, done)
             agent.store_memory(obs, action, reward, obs_, done, info)
