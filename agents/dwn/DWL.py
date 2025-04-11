@@ -72,7 +72,7 @@ class DWL(AbstractAgent):
                     beta_start=beta_start,
                     beta_inc=beta_inc,
                     seed=self.seed,
-                    exploration_strategy=exploration_strategy,
+                    exploration_strategy=exploration_strategy.copy(),
                     device=self.device,
                     hidlyr_nodes=hidlyr_nodes,
                     w_tau=w_tau,
@@ -89,6 +89,7 @@ class DWL(AbstractAgent):
             w_values.append(agent.get_w_value(x))
         softmax_w_values = softmax(w_values)
         softmax_w_values = softmax_w_values * human_preference
+        # print(x, w_values, softmax_w_values)
         return softmax_w_values
 
     def get_action(self, x, human_preference: np.ndarray | None = None) -> tuple[int, dict]:
@@ -101,11 +102,11 @@ class DWL(AbstractAgent):
     def get_actions(self, x, human_preference: np.ndarray | None = None) -> np.ndarray:
         w_values = self.get_w_values(x, human_preference)
         policy_sel = self.w_exploration_strategy.get_action(w_values, x)
+        # print(x, w_values, policy_sel)
         return self.agents[policy_sel].get_actions(x)
 
     def store_memory(self, s, a, rewards, s_, d, info: dict):
-        for i in range(self.num_policies):
-            agent = self.agents[i]
+        for i, agent in enumerate(self.agents):
             if self.q_learning:
                 agent.store_memory(s, a, rewards[i], s_, d)
             if self.w_learning and i != info["policy_sel"]:  # Do not store experience of the policy we selected

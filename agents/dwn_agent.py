@@ -42,6 +42,9 @@ class QN(nn.Module):
         self.fc2 = nn.Linear(hidlyr_nodes, hidlyr_nodes * 2)  # second conected layer
         self.out = nn.Linear(hidlyr_nodes * 2, action_number)  # output layer
 
+    def set_bias(self, value):
+        nn.init.constant_(self.out.bias, value)
+
     def forward(self, state):
         x = F.relu(self.fc1(state))  # relu activation of fc1
         x = F.relu(self.fc2(x))  # relu activation of fc2
@@ -96,12 +99,12 @@ class DWN(object):
 
         self.policy_net = DuelingQN(self.num_states, hidlyr_nodes, self.num_actions)
         self.target_net = DuelingQN(self.num_states, hidlyr_nodes, self.num_actions)
-        self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=learning_rate)
+        self.optimizer = torch.optim.RMSprop(self.policy_net.parameters(), lr=learning_rate)
 
         # Learning parameters for W learning net
-        self.wnetwork_local = DuelingQN(self.num_states, hidlyr_nodes, 1).to(device)
-        self.wnetwork_target = DuelingQN(self.num_states, hidlyr_nodes, 1).to(device)
-        self.optimizer_w = torch.optim.Adam(self.wnetwork_local.parameters(), lr=self.learning_rate)
+        self.wnetwork_local = QN(self.num_states, hidlyr_nodes, 1).to(device)
+        self.wnetwork_local.set_bias(0.0)
+        self.optimizer_w = torch.optim.RMSprop(self.wnetwork_local.parameters(), lr=self.learning_rate)
         # Init the W net learning parameters and replay buffer
         self.memory_w = ReplayBuffer(action_size=self.num_actions, buffer_size=self.memory_size, batch_size=self.batch_size, seed=self.random_seed)
         self.w_alpha = w_alpha
@@ -167,6 +170,7 @@ class DWN(object):
             rewards = rewards.to(self.device)
             next_states = next_states.to(self.device)
             dones = dones.to(self.device)
+
             current_qs = self.policy_net(states).gather(1, actions)
             next_actions = self.policy_net(next_states).detach().max(1)[1].unsqueeze(1)
             max_next_qs = self.target_net(next_states).detach().gather(1, next_actions)
@@ -196,15 +200,20 @@ class DWN(object):
             rewards = rewards.to(self.device)
             next_states = next_states.to(self.device)
             dones = dones.to(self.device)
+
             # Calculate the Q-values as in normal Q-learning
-            current_qs = self.policy_net(states).gather(1, actions)
+            current_qs_actions = self.policy_net(states).detach()
+            maximal_actions = current_qs_actions.max(1)[1].unsqueeze(1)
+            maximal_action_qs = current_qs_actions.gather(1, maximal_actions)
+            current_qs = current_qs_actions.gather(1, actions)
+
             next_actions = self.policy_net(next_states).detach().max(1)[1].unsqueeze(1)
             max_next_qs = self.target_net(next_states).detach().gather(1, next_actions)
             target_qs = rewards + self.gamma * max_next_qs * (1 - dones)
 
             # Calculate the W-values, as proposed with Eq. (3) in "W-learning Competition among selfish Q-learners"
             current_w = self.wnetwork_local(states)
-            target_w = (1 - self.w_alpha) * current_w.detach() + self.w_alpha * (current_qs - target_qs)
+            target_w = (1 - self.w_alpha) * current_w + self.w_alpha * ((current_qs - target_qs) + (maximal_action_qs - target_qs))
 
             is_weights = np.power(probabilites * self.batch_size, -self.beta)
             is_weights = torch.from_numpy(is_weights / np.max(is_weights)).float().to(self.device)
@@ -213,14 +222,12 @@ class DWN(object):
             # To track the loss over episode
             self.w_episode_loss.append(w_loss.detach().cpu().numpy())
 
-            td_errors = (target_qs - current_qs).detach().cpu().numpy()
+            td_errors = ((current_qs - target_qs) + (maximal_action_qs - target_qs)).detach().cpu().numpy()
             self.memory_w.update_priorities(experiences_idx, td_errors, self.per_epsilon)
 
             self.wnetwork_local.zero_grad()
             w_loss.backward()
             self.optimizer_w.step()
-            # ------------------- update target network ------------------- #
-            self.soft_update(self.wnetwork_local, self.wnetwork_target, self.w_tau)
 
     def soft_update(self, originNet, targetNet, tau):
         """Update the target network towards the online network"""
@@ -256,8 +263,8 @@ class DWN(object):
 
     def load_w_net(self, path):
         """Load the W-network"""
-        self.wnetwork_local.load_state_dict(torch.load(path)), self.wnetwork_target.load_state_dict(torch.load(path))
-        self.wnetwork_local.eval(), self.wnetwork_target.eval()
+        self.wnetwork_local.load_state_dict(torch.load(path))
+        self.wnetwork_local.eval()
 
     def load_exploration_strategy(self, path):
         """Load the exploration strategy"""

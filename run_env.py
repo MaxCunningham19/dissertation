@@ -78,7 +78,6 @@ if args.path_to_load_model is not None and len(args.path_to_load_model) > 0:
 if args.record:
     env = RecordVideo(env, videos_dir, episode_trigger=lambda e: (e + start_episode) % interval == 0, name_prefix=f"episode_{start_episode}")
 
-
 try:
     for i in range(start_episode, num_episodes):
         episode_reward = [0.0] * n_policy

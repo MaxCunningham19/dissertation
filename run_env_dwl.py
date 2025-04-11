@@ -127,6 +127,7 @@ if args.w_check_interval != 0:
 if args.record:
     env = RecordVideo(env, videos_dir, episode_trigger=lambda e: (e + start_episode) % interval == 0, name_prefix=f"episode_{start_episode}")
 
+human_preference = np.array([0.5, 0.5])
 try:
     for i in range(start_episode, num_episodes):
         episode_reward = [0.0] * n_policy
@@ -134,12 +135,14 @@ try:
 
         obs, _ = env.reset()
         while not (done or truncated):
-            action, info = agent.get_action(obs)
+            action, info = agent.get_action(obs, human_preference)
             obs_, reward, done, truncated, _ = env.step(action)
+            # print(obs, action, obs_, reward, done)
             agent.store_memory(obs, action, reward, obs_, done, info)
             obs = obs_
             for j in range(n_policy):
                 episode_reward[j] = episode_reward[j] + reward[j]
+
         loss_info = agent.get_loss_values()
         df.loc[len(df)] = [i, episode_reward, loss_info]
 
@@ -184,8 +187,12 @@ loss_arrays = df["loss"].apply(parse_loss_string).values
 
 q_loss, w_loss = [], []
 for x in loss_arrays:
-    q_loss.append([x[0][0], x[1][0]])
-    w_loss.append([x[0][1], x[1][1]])
+    if isinstance(x[0], list):
+        q_loss.append([x[0][0], x[1][0]])
+        w_loss.append([x[0][1], x[1][1]])
+    else:
+        q_loss.append([x[0][0], x[0][1]])
+        w_loss.append([float("nan"), float("nan")])
 
 q_loss = np.array(q_loss).T
 w_loss = np.array(w_loss).T

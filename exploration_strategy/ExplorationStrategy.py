@@ -90,3 +90,6 @@ class ExplorationStrategy(ABC):
 
     def __str__(self) -> str:
         return self.__class__.__name__
+
+    def copy(self) -> "ExplorationStrategy":
+        return self.__class__(**self.info())
