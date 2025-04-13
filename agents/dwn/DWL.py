@@ -182,3 +182,6 @@ class DWL(AbstractAgent):
         x = np.asarray(x).flatten()
         e_x = np.exp(x - np.max(x))
         return e_x / e_x.sum()
+
+    def name(self) -> str:
+        return "DWL"

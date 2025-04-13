@@ -22,3 +22,6 @@ class ScaledDemocraticDQN(DemocraticDQN):
             action_advantages[i] = scaled_q_values
 
         return self.scalarization.scalarize(np.array(action_advantages), human_preference)
+
+    def name(self) -> str:
+        return f"Scaled Democratic DQN with {self.scalarization.name()} Scalarization"

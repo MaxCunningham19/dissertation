@@ -101,3 +101,6 @@ class DemocraticDWL(DWL):
                 agent.store_memory(s, a, rewards[i], s_, d)
             if self.w_learning and i in info["policies_sel"]:  # Do not store experience of the policy we selected
                 agent.store_w_memory(s, a, rewards[i], s_, d)
+
+    def name(self) -> str:
+        return f"Democratic DWL with {self.scalarization.name()} Scalarization"

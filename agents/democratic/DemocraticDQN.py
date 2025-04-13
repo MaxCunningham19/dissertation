@@ -127,3 +127,6 @@ class DemocraticDQN(AbstractAgent):
                 self.agents[i].load_net(path + "Q" + str(i) + ".pt")
 
         self.exploration_strategy.load(path + "exploration_strategy.json")
+
+    def name(self) -> str:
+        return f"Democratic DQN with {self.scalarization.name()} Scalarization"

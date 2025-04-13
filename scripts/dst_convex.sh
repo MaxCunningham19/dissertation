@@ -49,7 +49,7 @@ do
             --objective_labels treasure speed \
             --action_labels U D L R \
             --human_preference $prefs \
-            --images_dir images/dst/convex/democratic/$scalarization/$prefs_cleaned
+            --images_dir images/dst/convex/scaled_democratic/$scalarization/$prefs_cleaned
     done
     python plot_agent_actions.py \
         --env mo-deep-sea-treasure-convex-v0 \

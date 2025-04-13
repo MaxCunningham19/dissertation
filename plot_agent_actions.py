@@ -120,6 +120,7 @@ plot_agent_actions(
     n_policy,
     save_path=f"{args.images_dir}",
     plot=args.plot,
+    objective_labels=args.objective_labels,
     action_labels=args.action_labels,
     should_plot=lambda state: env.unwrapped._is_valid_state(state),
     human_preference=args.human_preference,

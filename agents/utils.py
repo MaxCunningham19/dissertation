@@ -47,3 +47,15 @@ def get_democratic_dwl_agent(agent_name: str, **kwargs) -> AbstractAgent:
 
     kwargs["selected_policy"] = get_selected_policy(selcted_policy_method)
     return DemocraticDWL(**kwargs)
+
+
+class_to_name = {
+    DemocraticDWL: lambda x: ("Democratic DWL" + x.selected_policy.name()),
+    DemocraticDQN: lambda x: ("Democratic DQN" + x.selected_policy.name()),
+    DWL: lambda x: "DWL",
+    ScaledDemocraticDQN: lambda x: ("Scaled Democratic DQN" + x.selected_policy.name()),
+}
+
+
+def get_agent_name(agent: AbstractAgent) -> str:
+    return class_to_name.get(agent.__class__, "Agent")

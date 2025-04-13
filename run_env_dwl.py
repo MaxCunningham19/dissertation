@@ -185,7 +185,7 @@ loss_arrays = df["loss"].apply(parse_loss_string).values
 
 q_loss, w_loss = [], []
 for x in loss_arrays:
-    if isinstance(x[0], list):
+    if isinstance(x[0], list) or isinstance(x[0], tuple):
         q_loss.append([x[0][0], x[1][0]])
         w_loss.append([x[0][1], x[1][1]])
     else:

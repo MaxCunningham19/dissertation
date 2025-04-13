@@ -49,7 +49,7 @@ do
             --objective_labels food water \
             --action_labels noop U D L R LU RU LD RD \
             --human_preference $prefs \
-            --images_dir images/collaborative/democratic/$scalarization/$prefs_cleaned
+            --images_dir images/collaborative/scaled_democratic/$scalarization/$prefs_cleaned
     done
     python plot_agent_actions.py \
         --env mo-collaborative-env \

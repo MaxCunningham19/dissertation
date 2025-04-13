@@ -1,9 +1,32 @@
 from matplotlib import pyplot as plt
+from matplotlib.colors import to_rgb
 import numpy as np
 
 from agents.AbstractAgent import AbstractAgent
-
 from .utils import softmax
+
+
+def get_agent_name(agent: AbstractAgent | None) -> str:
+    if agent is None:
+        return "Agent"
+    return agent.name()
+
+
+def format_preferences(human_preferences: np.ndarray) -> str:
+    st = ""
+    for i, pref in enumerate(human_preferences):
+        st += f"{pref * 100}%"
+        if i < len(human_preferences) - 1:
+            st += ", "
+    return st
+
+
+def text_color(color):
+    r, g, b = to_rgb(color)
+    brightness = 0.299 * r + 0.587 * g + 0.114 * b
+    if brightness < 0.5:
+        return "white"
+    return "black"
 
 
 def smooth(array, window_size=1):
@@ -94,9 +117,11 @@ def plot_agent_objective_q_values(
                     bar = current_ax.bar(xs + offset, agent_info[i], width=bar_width_single, label=objective_labels[i], color=colors[i], alpha=0.7)
                     legend[objective_labels[i]] = bar
 
-    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.90, bottom=0.13, wspace=0.01, hspace=0.01)
     plt.figlegend(legend.values(), legend.keys(), loc="lower center", ncol=n_policy, bbox_to_anchor=(0.5, 0.02), fontsize=8)
-    plt.title(f"{title}")
+    fig.suptitle(
+        f"Q-Values of all objectives for {get_agent_name(agent)}\nwith human preferences {format_preferences(human_preference)}", fontsize=10
+    )
     if save_path is not None:
         plt.savefig(f"{save_path}/objective_q_values.png", dpi=500)
     if plot:
@@ -153,7 +178,10 @@ def plot_agent_objective_q_values_seperated(
                         height = rect.get_height()
                         current_ax.text(rect.get_x() + rect.get_width() / 2.0, height, f"{height:.2f}", ha="center", va="bottom", fontsize=5)
 
-        plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
+        plt.subplots_adjust(left=0.05, right=0.95, top=0.90, bottom=0.13, wspace=0.01, hspace=0.01)
+        fig.suptitle(
+            f"Q-Values of Objective {objective_labels[i]} for {get_agent_name(agent)}\nwith human preference {human_preference[i]*100}%", fontsize=10
+        )
         if save_path is not None:
             plt.savefig(f"{save_path}/q_values_objective_{objective_labels[i]}.png", dpi=500)
         if plot:
@@ -199,7 +227,8 @@ def plot_agent_q_values(
                 for rect in bar:
                     height = rect.get_height()
                     current_ax.text(rect.get_x() + rect.get_width() / 2.0, height, f"{height:.2f}", ha="center", va="bottom", fontsize=5)
-    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.90, bottom=0.13, wspace=0.01, hspace=0.01)
+    fig.suptitle(f"Q-Values for {get_agent_name(agent)}\nwith human preferences {format_preferences(human_preference)}", fontsize=10)
     if save_path is not None:
         plt.savefig(f"{save_path}/q_values.png", dpi=500)
     if plot:
@@ -215,6 +244,7 @@ def plot_agent_w_values(
     plot: bool = False,
     should_plot: lambda state: bool = lambda state: True,
     objective_labels: list[str] | None = None,
+    agent: AbstractAgent | None = None,
 ):
     """Plots a grid of line charts of the w_values for each state over time"""
     if len(states) <= 0 or n_policy <= 0:
@@ -254,8 +284,9 @@ def plot_agent_w_values(
                             lines.append(line[0])
                             labels.append(objective_labels[i])
 
-    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.2, hspace=0.3)
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.90, bottom=0.13, wspace=0.2, hspace=0.3)
     fig.legend(lines, labels, loc="lower center", ncol=n_policy, bbox_to_anchor=(0.5, 0.02), fontsize=8)
+    fig.suptitle(f"Objective W-Values Over Time for {get_agent_name(agent)}", fontsize=10)
     if save_path is not None:
         plt.savefig(f"{save_path}/w_values.png", dpi=500, bbox_inches="tight")
     if plot:
@@ -270,13 +301,17 @@ def plot_agent_actions(
     save_path: str = None,
     plot: bool = False,
     action_labels: list[str] | None = None,
+    objective_labels: list[str] | None = None,
     should_plot: lambda state: bool = lambda state: True,
     human_preference: np.ndarray | None = None,
 ):
     """Plots a grid of where the selected action is plotted for each state"""
     if action_labels is None:
         action_labels = [f"{i}" for i in range(n_actions)]
+    if objective_labels is None:
+        objective_labels = [f"Objective {i}" for i in range(n_policy)]
     colors = plt.cm.viridis(np.linspace(0, 1, n_policy))
+
     fig, axes = plt.subplots(len(states), len(states[0]))
     if not hasattr(axes, "__len__"):
         axes = [axes]
@@ -297,9 +332,12 @@ def plot_agent_actions(
 
                 max_obj_idx = np.argmax([obj_acts[action] for obj_acts in objective_actions])
                 current_ax.set_facecolor(colors[max_obj_idx])
-                current_ax.text(0.5, 0.5, f"{action_labels[action]}", ha="center", va="center", fontsize=8)
+                current_ax.text(0.5, 0.5, f"{action_labels[action]}", ha="center", va="center", color=text_color(colors[max_obj_idx]), fontsize=8)
 
-    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.13, wspace=0.01, hspace=0.01)
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.90, bottom=0.13, wspace=0.01, hspace=0.01)
+    legend_elements = [plt.Rectangle((0, 0), 1, 1, color=colors[i], label=objective_labels[i]) for i in range(n_policy)]
+    fig.legend(handles=legend_elements, labels=objective_labels, loc="lower center", ncol=n_policy, bbox_to_anchor=(0.5, 0.02), fontsize=8)
+    fig.suptitle(f"Selected Actions per state for {get_agent_name(agent)}\nwith human preference {format_preferences(human_preference)}", fontsize=10)
     plt.savefig(f"{save_path}/actions.png", dpi=500)
     if plot:
         plt.show()

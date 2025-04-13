@@ -20,6 +20,11 @@ class ActionScalarization(ABC):
         """
         pass
 
+    @staticmethod
+    @abstractmethod
+    def name() -> str:
+        pass
+
 
 class LinearScalarization(ActionScalarization):
     """
@@ -33,6 +38,10 @@ class LinearScalarization(ActionScalarization):
         if human_preference is None:
             return np.sum(action_values, axis=0)
         return np.dot(human_preference, action_values)
+
+    @staticmethod
+    def name():
+        return "Linear"
 
 
 class ChebyshevScalarization(ActionScalarization):
@@ -57,6 +66,10 @@ class ChebyshevScalarization(ActionScalarization):
             scalarized_rewards[action] = np.max(weighted_deviations)
 
         return -scalarized_rewards
+
+    @staticmethod
+    def name():
+        return "Chebyshev"
 
 
 SCALARIZATION_METHODS = {"linear": LinearScalarization, "chebyshev": ChebyshevScalarization}

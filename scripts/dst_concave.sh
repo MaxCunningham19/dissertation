@@ -14,7 +14,7 @@ preference_vectors=(
     "1.0 0.0"
 )
 scalarizations=("linear" "chebyshev")
-dst_concave_model_path="path"
+dst_concave_model_path="$1"
 
 for prefs in "${preference_vectors[@]}"
 do
@@ -34,7 +34,7 @@ do
         python plot_agent_actions.py \
             --env mo-deep-sea-treasure-concave-v0 \
             --model democratic_dwl \
-            --model_kwargs hidlyr_nodes=128 scalarization=$scalarization w_exploration_strategy=greedy\
+            --model_kwargs hidlyr_nodes=128 scalarization=$scalarization\
             --model_path $dst_concave_model_path \
             --objective_labels treasure speed \
             --action_labels U D L R \
@@ -49,7 +49,7 @@ do
             --objective_labels treasure speed \
             --action_labels U D L R \
             --human_preference $prefs \
-            --images_dir images/dst/concave/democratic/$scalarization/$prefs_cleaned
+            --images_dir images/dst/concave/scaled_democratic/$scalarization/$prefs_cleaned
     done
     python plot_agent_actions.py \
         --env mo-deep-sea-treasure-concave-v0 \

@@ -6,6 +6,10 @@ class AbstractAgent(ABC):
     """These are the minimum methods that are required for an agent to be ran in the environment"""
 
     @abstractmethod
+    def name(self) -> str:
+        return "Agent"
+
+    @abstractmethod
     def get_action(self, x, human_preference: np.ndarray | None = None) -> tuple[int, dict]:
         """Get an action from the agent in state x"""
         pass
