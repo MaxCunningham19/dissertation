@@ -7,7 +7,7 @@ from exploration_strategy.DecayEpsilonGreedy import DecayEpsilonGreedy
 from exploration_strategy import ExplorationStrategy
 from agents.AbstractAgent import AbstractAgent
 from ..dwn_agent import DWN
-from utils.utils import softmax
+from utils.utils import l1_normalization, softmax
 
 
 class DWL(AbstractAgent):
@@ -87,10 +87,10 @@ class DWL(AbstractAgent):
         w_values = []
         for agent in self.agents:
             w_values.append(agent.get_w_value(x))
-        softmax_w_values = softmax(w_values)
-        softmax_w_values = softmax_w_values * human_preference
-        # print(x, w_values, softmax_w_values)
-        return softmax_w_values
+        normalized_w_values = l1_normalization(w_values)
+        normalized_w_values = normalized_w_values * human_preference
+        # print(x, w_values, normalized_w_values)
+        return normalized_w_values
 
     def get_action(self, x, human_preference: np.ndarray | None = None) -> tuple[int, dict]:
         """Get the action nomination for the given state"""

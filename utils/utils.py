@@ -79,3 +79,10 @@ def softmax(x) -> np.ndarray:
 
     e_x = np.exp(x - np.max(x))
     return e_x / e_x.sum()
+
+
+def l1_normalization(x) -> np.ndarray:
+    if isinstance(x, torch.Tensor):
+        x = x.detach().cpu().numpy().flatten()
+    sum_x = sum(x)
+    return x / sum_x
