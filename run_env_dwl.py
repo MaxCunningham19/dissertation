@@ -185,12 +185,12 @@ loss_arrays = df["loss"].apply(parse_loss_string).values
 
 q_loss, w_loss = [], []
 for x in loss_arrays:
-    if isinstance(x[0], list) or isinstance(x[0], tuple):
-        q_loss.append([x[0][0], x[1][0]])
-        w_loss.append([x[0][1], x[1][1]])
+    if len(x) > 1:
+        q_loss.append([x[i][0] for i in range(len(x))])
+        w_loss.append([x[i][1] for i in range(len(x))])
     else:
-        q_loss.append([x[0][0], x[0][1]])
-        w_loss.append([float("nan"), float("nan")])
+        q_loss.append([x[0][i] for i in range(len(x[0]))])
+        w_loss.append([float("nan") for _ in range(len(x[0]))])
 
 q_loss = np.array(q_loss).T
 w_loss = np.array(w_loss).T

@@ -124,7 +124,7 @@ class DeepSeaTreasure(gym.Env, EzPickle):
 
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, render_mode: Optional[str] = None, dst_map=DEFAULT_MAP, float_state=False):
+    def __init__(self, render_mode: Optional[str] = None, dst_map=DEFAULT_MAP, float_state=False, invalid_move_objective=False):
         EzPickle.__init__(self, render_mode, dst_map, float_state)
 
         self.render_mode = render_mode
@@ -161,8 +161,12 @@ class DeepSeaTreasure(gym.Env, EzPickle):
 
         # action space specification: 1 dimension, 0 up, 1 down, 2 left, 3 right
         self.action_space = Discrete(4)
-        self.reward_space = Box(low=np.array([0, -1]), high=np.array([np.max(self.sea_map), -1]), dtype=np.float32)
-        self.reward_dim = 2
+        if invalid_move_objective:
+            self.reward_space = Box(low=np.array([0, -1, -1]), high=np.array([np.max(self.sea_map), -1, 0]), dtype=np.float32)
+        else:
+            self.reward_space = Box(low=np.array([0, -1]), high=np.array([np.max(self.sea_map), -1]), dtype=np.float32)
+        self.invalid_move_objective = invalid_move_objective
+        self.reward_dim = 3 if self.invalid_move_objective else 2
 
         self.current_state = np.array([0, 0], dtype=np.int32)
 
@@ -300,8 +304,10 @@ class DeepSeaTreasure(gym.Env, EzPickle):
     def step(self, action):
         next_state = self.current_state + self.dir[int(action)]
 
+        invalid_move_penalty = -1.0
         if self._is_valid_state(next_state):
             self.current_state = next_state
+            invalid_move_penalty = 0.0
 
         treasure_value = self._get_map_value(self.current_state)
         if treasure_value == 0 or treasure_value == -10:
@@ -310,7 +316,10 @@ class DeepSeaTreasure(gym.Env, EzPickle):
         else:
             terminal = True
         time_penalty = -1.0
-        vec_reward = np.array([treasure_value, time_penalty], dtype=np.float32)
+        if self.invalid_move_objective:
+            vec_reward = np.array([treasure_value, time_penalty, invalid_move_penalty])
+        else:
+            vec_reward = np.array([treasure_value, time_penalty], dtype=np.float32)
 
         state = self._get_state()
         if self.render_mode == "human":

@@ -19,12 +19,16 @@ class DuelingQN(nn.Module):
         super(DuelingQN, self).__init__()
         self.fc1 = nn.Linear(state_number, hidlyr_nodes)  # first conected layer
         self.fc2 = nn.Linear(hidlyr_nodes, hidlyr_nodes * 2)  # second conected layer
-        self.values = nn.Linear(hidlyr_nodes * 2, 1)  # output layer for value function
-        self.advantages = nn.Linear(hidlyr_nodes * 2, action_number)  # output layer
+        self.fc3 = nn.Linear(hidlyr_nodes * 2, hidlyr_nodes * 4)  # second conected layer
+        self.fc4 = nn.Linear(hidlyr_nodes * 4, hidlyr_nodes * 8)  # second conected layer
+        self.values = nn.Linear(hidlyr_nodes * 8, 1)  # output layer for value function
+        self.advantages = nn.Linear(hidlyr_nodes * 8, action_number)  # output layer
 
     def forward(self, state):
         x = F.relu(self.fc1(state))  # relu activation of fc1
         x = F.relu(self.fc2(x))  # relu activation of fc2
+        x = F.relu(self.fc3(x))  # relu activation of fc2
+        x = F.relu(self.fc4(x))  # relu activation of fc2
         values = self.values(x)  # calculate value function
         advantages = self.advantages(x)  # calculate action values
         x = values + (advantages - advantages.mean())  # combine value and action values
@@ -124,7 +128,7 @@ class DQN(object):
             current_qs = self.policy_net(states).gather(1, actions)
             next_actions = self.policy_net(next_states).detach().max(1)[1].unsqueeze(1)
             max_next_qs = self.target_net(next_states).detach().gather(1, next_actions)
-            target_qs = rewards + self.gamma * max_next_qs * (1 - dones)
+            target_qs = rewards + self.gamma * max_next_qs * (1.0 - (dones).float())
 
             is_weights = np.power(probabilities * self.batch_size, -self.beta)
             is_weights = torch.from_numpy(is_weights / is_weights.max()).float().to(self.device)
