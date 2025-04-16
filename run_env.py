@@ -37,7 +37,11 @@ n_action = env.action_space.n
 n_policy = env.unwrapped.reward_space.shape[0]
 
 # Setup agent
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
+if torch.backends.mps.is_available():
+    device = torch.device("mps")
+elif torch.cuda.is_available():
+    device = torch.device("cuda:0")
 exploration_strategy = create_exploration_strategy(args.exploration, **extract_kwargs(args.exploration_kwargs))
 model_kwargs = extract_kwargs(args.model_kwargs)
 model_kwargs["device"] = device

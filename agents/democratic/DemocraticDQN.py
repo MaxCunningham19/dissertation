@@ -27,7 +27,6 @@ class DemocraticDQN(AbstractAgent):
         hidlyr_nodes=256,
         seed=404,
         device=None,
-        human_preference=None,
     ):
 
         self.input_shape = input_shape
@@ -36,9 +35,6 @@ class DemocraticDQN(AbstractAgent):
         self.num_states = self.input_shape[0]
         self.exploration_strategy = exploration_strategy
         self.scalarization = scalarization
-        self.human_preference = human_preference
-        if self.human_preference is None or len(human_preference) != self.num_policies:
-            self.human_preference = [1.0] * self.num_policies
 
         # Construct Agents for each policy
         self.agents: list[DQN] = []

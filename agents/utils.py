@@ -1,19 +1,11 @@
-from .democratic_dwn import DemocraticDWL
+from .democratic_dwn import DemocraticDWL, ScaledDemocraticDWL
 from .AbstractAgent import AbstractAgent
 from .dwn import DWL
 from .scaled_democratic import ScaledDemocraticDQN
 from .democratic import DemocraticDQN
 from action_scalarization import get_scalarization_method
 
-agent_names = [
-    "scaled_democratic",
-    "dwl",
-    "democratic",
-    "democratic_dwl",
-    "democratic_dwl_max_action",
-    "democratic_dwl_random_max_action",
-    "democratic_dwl_max_action_max_q_value",
-]
+agent_names = ["scaled_democratic", "dwl", "democratic", "democratic_dwl", "scaled_democratic_dwl"]
 
 
 def get_agent(agent_name: str, **kwargs) -> AbstractAgent:
@@ -25,7 +17,9 @@ def get_agent(agent_name: str, **kwargs) -> AbstractAgent:
         return DWL(**kwargs)
     elif agent_name == "democratic":
         return DemocraticDQN(**kwargs)
-    elif agent_name.startswith("democratic_dwl"):
+    elif agent_name == "democratic_dwl":
         return DemocraticDWL(**kwargs)
+    elif agent_name == "scaled_democratic_dwl":
+        return ScaledDemocraticDWL(**kwargs)
     else:
         raise ValueError(f"Invalid agent name: {agent_name}. Possible values are: {agent_names}")

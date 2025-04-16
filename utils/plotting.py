@@ -36,10 +36,20 @@ def smooth(array, window_size=1):
 
 
 def plot_over_time_multiple_subplots(
-    n_policy, values_to_plot, label=None, color="red", colors=None, xlabel="", ylabel="", titles=None, save_path: str = None, plot: bool = False
+    n_policy,
+    values_to_plot,
+    label=None,
+    color="red",
+    colors=None,
+    xlabel="",
+    ylabel="",
+    titles=None,
+    save_path: str = None,
+    plot: bool = False,
+    fig_title: str = "",
 ):
     """Plots the values of each individual policy over multiple iterations in multiple subplots"""
-    _, axes = plt.subplots(n_policy, 1)
+    fig, axes = plt.subplots(n_policy, 1)
     for i, current_values in enumerate(values_to_plot):
         x_values = np.arange(len(current_values))
         if not colors is None and len(colors) == n_policy:
@@ -48,8 +58,9 @@ def plot_over_time_multiple_subplots(
         axes[i].set_xlabel(xlabel)
         axes[i].set_ylabel(ylabel)
         if not titles is None and len(titles) == n_policy:
-            axes[i].set_title(titles[i])
-
+            axes[i].set_title(titles[i], fontsize=10)
+    plt.subplots_adjust(top=0.9)
+    fig.suptitle(fig_title, fontsize=14)
     plt.tight_layout()
     if save_path is not None:
         plt.savefig(save_path, dpi=500)

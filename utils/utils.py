@@ -75,7 +75,8 @@ def convert_to_num_if_possible(value: str):
 def softmax(x) -> np.ndarray:
     """Applies the softmax function to a numpy array"""
     if isinstance(x, torch.Tensor):
-        x = x.detach().cpu().numpy().flatten()
+        x = x.detach().cpu().numpy()
+    x = np.array(x).flatten()
 
     e_x = np.exp(x - np.max(x))
     return e_x / e_x.sum()
@@ -83,6 +84,7 @@ def softmax(x) -> np.ndarray:
 
 def l1_normalization(x) -> np.ndarray:
     if isinstance(x, torch.Tensor):
-        x = x.detach().cpu().numpy().flatten()
-    sum_x = sum(x)
+        x = x.detach().cpu().numpy()
+    x = np.array(x).flatten()
+    sum_x = sum(list(map(abs, x)))
     return x / sum_x

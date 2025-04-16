@@ -14,6 +14,7 @@ preference_vectors=(
     "1.0 0.0"
 )
 scalarizations=("linear" "chebyshev")
+normalizations=("L1" "Softmax")
 dst_convex_model_path="$1"
 
 for prefs in "${preference_vectors[@]}"
@@ -41,15 +42,28 @@ do
             --human_preference $prefs \
             --images_dir images/dst/convex/democratic_dwl/$scalarization/$prefs_cleaned
         
-        python plot_agent_actions.py \
-            --env mo-deep-sea-treasure-convex-v0 \
-            --model scaled_democratic \
-            --model_kwargs hidlyr_nodes=128 scalarization=$scalarization\
-            --model_path $dst_convex_model_path \
-            --objective_labels treasure speed \
-            --action_labels U D L R \
-            --human_preference $prefs \
-            --images_dir images/dst/convex/scaled_democratic/$scalarization/$prefs_cleaned
+        for normalization in "${normalizations[@]}"
+        do
+            python plot_agent_actions.py \
+                --env mo-deep-sea-treasure-convex-v0 \
+                --model scaled_democratic \
+                --model_kwargs hidlyr_nodes=128 scalarization=$scalarization normalization=$normalization\
+                --model_path $dst_convex_model_path \
+                --objective_labels treasure speed \
+                --action_labels U D L R \
+                --human_preference $prefs \
+                --images_dir images/dst/convex/scaled_democratic/$scalarization/$normalization/$prefs_cleaned
+
+            python plot_agent_actions.py \
+                --env mo-deep-sea-treasure-convex-v0 \
+                --model scaled_democratic_dwl \
+                --model_kwargs hidlyr_nodes=128 scalarization=$scalarization normalization=$normalization\
+                --model_path $dst_convex_model_path \
+                --objective_labels treasure speed \
+                --action_labels U D L R \
+                --human_preference $prefs \
+                --images_dir images/dst/convex/scaled_democratic_dwl/$scalarization/$normalization/$prefs_cleaned
+        done
     done
     python plot_agent_actions.py \
         --env mo-deep-sea-treasure-convex-v0 \

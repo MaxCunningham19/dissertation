@@ -1,13 +1,15 @@
 from typing import Literal
 import numpy as np
+import torch
 
 from action_scalarization import ActionScalarization
 from agents.dwn import DWL
 from exploration_strategy import ExplorationStrategy
 from exploration_strategy.utils import create_exploration_strategy
+from utils.utils import l1_normalization, softmax
 
 
-class DemocraticDWL(DWL):
+class ScaledDemocraticDWL(DWL):
 
     def __init__(
         self,
@@ -17,6 +19,7 @@ class DemocraticDWL(DWL):
         exploration_strategy: ExplorationStrategy,
         scalarization: ActionScalarization,
         w_normalization: Literal["L1", "Softmax"] = "Softmax",
+        normalization: Literal["Softmax", "L1"] = "Softmax",
         memory_size=100000,
         batch_size=1024,
         learning_rate=0.001,
@@ -57,6 +60,7 @@ class DemocraticDWL(DWL):
         )
         self.scalarization = scalarization
         self.exploration_strategy = exploration_strategy
+        self.normalization = normalization
 
     def get_action_and_w_values(self, x, human_preference: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Get the action nomination and the w-values for the given state
@@ -70,7 +74,7 @@ class DemocraticDWL(DWL):
         w_values = self.get_w_values(x, human_preference)
         objective_action_values = np.zeros((self.num_policies, self.num_actions), dtype=np.float32)
         for i, agent in enumerate(self.agents):
-            objective_action_values[i] = agent.get_actions(x)
+            objective_action_values[i] = self.normalize(agent.get_actions(x))
         action_values = self.scalarization.scalarize(objective_action_values, w_values)
         return action_values, w_values, objective_action_values
 
@@ -95,4 +99,9 @@ class DemocraticDWL(DWL):
                 agent.store_w_memory(s, a, rewards[i], s_, d)
 
     def name(self) -> str:
-        return f"Democratic DWL with {self.scalarization.name()}, {self.w_normalization}"
+        return f"Scaled Democratic DWL with {self.scalarization.name()}, {self.normalization}, {self.w_normalization}"
+
+    def normalize(self, x) -> np.ndarray:
+        if self.normalization == "L1":
+            return l1_normalization(x)
+        return softmax(x)

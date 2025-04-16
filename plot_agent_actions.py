@@ -40,7 +40,11 @@ n_state = env.observation_space.shape[0]
 n_action = env.action_space.n
 n_policy = env.unwrapped.reward_space.shape[0]
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
+if torch.backends.mps.is_available():
+    device = torch.device("mps")
+elif torch.cuda.is_available():
+    device = torch.device("cuda:0")
 agent_name = " ".join(args.model.split(" ")).lower()
 model_kwargs = extract_kwargs(args.model_kwargs)
 model_kwargs["device"] = device

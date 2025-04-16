@@ -22,7 +22,7 @@ from utils import generate_file_structure, kwargs_to_string
 parser = build_parser()
 parser.add_argument("--env", type=str, required=True, help="the environment to run")
 parser.add_argument("--env_kwargs", type=str, nargs="*", help="environment kwargs")
-parser.add_argument("--w_exploration", type=str, default="epsilon", help="w_value exploration strategy for deciding which action to take")
+parser.add_argument("--w_exploration", type=str, default=None, help="w_value exploration strategy for deciding which action to take")
 parser.add_argument(
     "--w_exploration_kwargs",
     type=str,
@@ -55,20 +55,28 @@ if torch.backends.mps.is_available():
 elif torch.cuda.is_available():
     device = torch.device("cuda:0")
 exploration_strategy = create_exploration_strategy(args.exploration, **extract_kwargs(args.exploration_kwargs))
-w_exploration_strategy = create_exploration_strategy(args.w_exploration, **extract_kwargs(args.w_exploration_kwargs))
 model_kwargs = extract_kwargs(args.model_kwargs)
 model_kwargs["device"] = device
 model_kwargs["input_shape"] = env.observation_space.shape
 model_kwargs["num_actions"] = n_action
 model_kwargs["num_policies"] = n_policy
 model_kwargs["exploration_strategy"] = exploration_strategy
-model_kwargs["w_exploration_strategy"] = w_exploration_strategy
+w_exploration_strategy = None
+if args.w_exploration is not None:
+    w_exploration_strategy = create_exploration_strategy(args.w_exploration, **extract_kwargs(args.w_exploration_kwargs))
+    model_kwargs["w_exploration_strategy"] = w_exploration_strategy
 agent_name = " ".join(args.model.split(" ")).lower()
 agent = get_agent(agent_name, **model_kwargs)
 
 
 if args.path_to_load_model is not None and len(args.path_to_load_model) > 0:
     agent.load(args.path_to_load_model)
+
+w_string = ""
+w_exploration = ""
+if w_exploration_strategy is not None:
+    w_string = kwargs_to_string(w_exploration_strategy.info())
+    w_exploration = args.w_exploration
 
 
 results_dir, images_dir, models_dir, videos_dir = generate_file_structure(
@@ -78,8 +86,8 @@ results_dir, images_dir, models_dir, videos_dir = generate_file_structure(
     kwargs_to_string(args.model_kwargs),
     args.exploration,
     kwargs_to_string(exploration_strategy.info()),
-    args.w_exploration,
-    kwargs_to_string(w_exploration_strategy.info()),
+    w_exploration,
+    w_string,
 )
 results_path = f"{results_dir}/results.csv"
 start_episode = 0
