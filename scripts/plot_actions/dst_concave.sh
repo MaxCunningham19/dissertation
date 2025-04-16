@@ -30,7 +30,7 @@ do
             --objective_labels treasure speed \
             --action_labels U D L R \
             --human_preference $prefs \
-            --images_dir images/dst/concave/democratic/$scalarization/$prefs_cleaned
+            --images_dir images/dst/concave/democratic/$prefs_cleaned/$scalarization
         
         python plot_agent_actions.py \
             --env mo-deep-sea-treasure-concave-v0 \
@@ -40,7 +40,7 @@ do
             --objective_labels treasure speed \
             --action_labels U D L R \
             --human_preference $prefs \
-            --images_dir images/dst/concave/democratic_dwl/$scalarization/$prefs_cleaned
+            --images_dir images/dst/concave/democratic_dwl/$prefs_cleaned/$scalarization
         
         for normalization in "${normalizations[@]}"
         do
@@ -52,26 +52,32 @@ do
                 --objective_labels treasure speed \
                 --action_labels U D L R \
                 --human_preference $prefs \
-                --images_dir images/dst/concave/scaled_democratic/$scalarization/$normalization/$prefs_cleaned
+                --images_dir images/dst/concave/scaled_democratic/$prefs_cleaned/$scalarization/$normalization
 
-            python plot_agent_actions.py \
-                --env mo-deep-sea-treasure-concave-v0 \
-                --model scaled_democratic_dwl \
-                --model_kwargs hidlyr_nodes=128 scalarization=$scalarization normalization=$normalization\
-                --model_path $dst_concave_model_path \
-                --objective_labels treasure speed \
-                --action_labels U D L R \
-                --human_preference $prefs \
-                --images_dir images/dst/concave/scaled_democratic_dwl/$scalarization/$normalization/$prefs_cleaned
+            for wnorm in "${normalizations[@]}"
+            do
+                python plot_agent_actions.py \
+                    --env mo-deep-sea-treasure-concave-v0 \
+                    --model scaled_democratic_dwl \
+                    --model_kwargs hidlyr_nodes=128 scalarization=$scalarization normalization=$normalization w_normalization=$wnorm\
+                    --model_path $dst_concave_model_path \
+                    --objective_labels treasure speed \
+                    --action_labels U D L R \
+                    --human_preference $prefs \
+                    --images_dir images/dst/concave/scaled_democratic_dwl/$prefs_cleaned/$scalarization/$normalization/w_$wnorm
+            done
         done
     done
-    python plot_agent_actions.py \
-        --env mo-deep-sea-treasure-concave-v0 \
-        --model dwl \
-        --model_kwargs hidlyr_nodes=128 w_exploration_strategy=greedy\
-        --model_path $dst_concave_model_path \
-        --objective_labels treasure speed \
-        --action_labels U D L R \
-        --human_preference $prefs \
-        --images_dir images/dst/concave/dwl/$prefs_cleaned
+    for wnorm in "${normalizations[@]}"
+    do
+        python plot_agent_actions.py \
+            --env mo-deep-sea-treasure-concave-v0 \
+            --model dwl \
+            --model_kwargs hidlyr_nodes=128 w_exploration_strategy=greedy w_normalization=$wnorm\
+            --model_path $dst_concave_model_path \
+            --objective_labels treasure speed \
+            --action_labels U D L R \
+            --human_preference $prefs \
+            --images_dir images/dst/concave/dwl/$prefs_cleaned/w_$wnorm
+    done
 done

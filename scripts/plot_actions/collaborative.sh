@@ -58,7 +58,7 @@ do
             do
                 python plot_agent_actions.py \
                     --env mo-collaborative-env \
-                    --model scaled_democratic \
+                    --model scaled_democratic_dwl \
                     --model_kwargs hidlyr_nodes=128 scalarization=$scalarization normalization=$normalization w_normalization=$wnormalization \
                      --model_path $collaborative_model_path \
                     --objective_labels food water \
