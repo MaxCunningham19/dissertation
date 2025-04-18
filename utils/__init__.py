@@ -1,6 +1,5 @@
 from .utils import extract_kwargs, kwargs_to_string, softmax, l1_normalization
 from .argument_parser import build_parser
-from .run_env import run_env
 from .plotting import (
     smooth,
     plot_agent_actions,
