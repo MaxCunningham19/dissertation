@@ -120,18 +120,15 @@ if args.plot:
 
     df = pd.read_csv(csv_file)
 
-    # Get number of objectives
     reward_cols = [col for col in df.columns if "Episode Reward Objective" in col]
     pref_cols = [col for col in df.columns if "Human Preference Objective" in col]
     n_policy = len(reward_cols)
 
-    # Create a human preference label for x-axis
     df["Preference Label"] = df[pref_cols].apply(lambda row: "(" + ", ".join(map(str, row)) + ")", axis=1)
 
-    # Get unique agents
     agents = df["Agent"].unique()
-    x = np.arange(len(df[df["Agent"] == agents[0]]))  # x-locations for each preference
-    width = 0.25  # Width of bars, adjusted for spacing
+    x = np.arange(len(df[df["Agent"] == agents[0]]))
+    width = 0.25
 
     for i, reward_col in enumerate(reward_cols):
         fig, ax = plt.subplots(figsize=(14, 7))

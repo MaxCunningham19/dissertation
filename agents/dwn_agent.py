@@ -12,17 +12,17 @@ from .ReplayBuffer import ReplayBuffer
 
 class DuelingQN(nn.Module):
     """
-    Basic Model of a Q network
+    Basic Model of a Dueling Q network
     """
 
     def __init__(self, state_number, hidlyr_nodes, action_number):
         super(DuelingQN, self).__init__()
         self.fc1 = nn.Linear(state_number, hidlyr_nodes)  # first conected layer
         self.fc2 = nn.Linear(hidlyr_nodes, hidlyr_nodes * 2)  # second conected layer
-        self.fc3 = nn.Linear(hidlyr_nodes * 2, hidlyr_nodes * 4)  # second conected layer
-        self.fc4 = nn.Linear(hidlyr_nodes * 4, hidlyr_nodes * 8)  # second conected layer
+        self.fc3 = nn.Linear(hidlyr_nodes * 2, hidlyr_nodes * 4)  # third conected layer
+        self.fc4 = nn.Linear(hidlyr_nodes * 4, hidlyr_nodes * 8)  # fourth conected layer
         self.values = nn.Linear(hidlyr_nodes * 8, 1)  # output layer for value function
-        self.advantages = nn.Linear(hidlyr_nodes * 8, action_number)  # output layer
+        self.advantages = nn.Linear(hidlyr_nodes * 8, action_number)  # output layer advantages
 
     def forward(self, state):
         x = F.relu(self.fc1(state))  # relu activation of fc1

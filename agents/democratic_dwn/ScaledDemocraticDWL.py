@@ -3,13 +3,13 @@ import numpy as np
 import torch
 
 from action_scalarization import ActionScalarization
-from agents.dwn import DWL
+from agents.democratic_dwn import DemocraticDWL
 from exploration_strategy import ExplorationStrategy
 from exploration_strategy.utils import create_exploration_strategy
 from utils.utils import l1_normalization, softmax
 
 
-class ScaledDemocraticDWL(DWL):
+class ScaledDemocraticDWL(DemocraticDWL):
 
     def __init__(
         self,
@@ -41,10 +41,10 @@ class ScaledDemocraticDWL(DWL):
             num_actions=num_actions,
             num_policies=num_policies,
             exploration_strategy=create_exploration_strategy("greedy"),
-            w_exploration_strategy=create_exploration_strategy("greedy"),
-            w_normalization=w_normalization,
             memory_size=memory_size,
             batch_size=batch_size,
+            scalarization=scalarization,
+            w_normalization=w_normalization,
             learning_rate=learning_rate,
             gamma=gamma,
             hidlyr_nodes=hidlyr_nodes,
@@ -58,7 +58,6 @@ class ScaledDemocraticDWL(DWL):
             per_epsilon=per_epsilon,
             seed=seed,
         )
-        self.scalarization = scalarization
         self.exploration_strategy = exploration_strategy
         self.normalization = normalization
 

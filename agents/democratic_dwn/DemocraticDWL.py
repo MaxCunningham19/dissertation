@@ -5,6 +5,7 @@ from action_scalarization import ActionScalarization
 from agents.dwn import DWL
 from exploration_strategy import ExplorationStrategy
 from exploration_strategy.utils import create_exploration_strategy
+from utils.utils import l1_normalization, softmax
 
 
 class DemocraticDWL(DWL):
@@ -39,7 +40,6 @@ class DemocraticDWL(DWL):
             num_policies=num_policies,
             exploration_strategy=create_exploration_strategy("greedy"),
             w_exploration_strategy=create_exploration_strategy("greedy"),
-            w_normalization=w_normalization,
             memory_size=memory_size,
             batch_size=batch_size,
             learning_rate=learning_rate,
@@ -57,6 +57,7 @@ class DemocraticDWL(DWL):
         )
         self.scalarization = scalarization
         self.exploration_strategy = exploration_strategy
+        self.w_normalization = w_normalization
 
     def get_action_and_w_values(self, x, human_preference: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Get the action nomination and the w-values for the given state
@@ -96,3 +97,19 @@ class DemocraticDWL(DWL):
 
     def name(self) -> str:
         return f"Democratic DWL with {self.scalarization.name()}, {self.w_normalization}"
+
+    def normalize_w(self, x) -> np.ndarray:
+        if self.w_normalization == "L1":
+            return l1_normalization(x)
+        return softmax(x)
+
+    def get_w_values(self, x, human_preference: np.ndarray | None = None) -> np.ndarray:
+        """Get the weights for the given state"""
+        if human_preference is None:
+            human_preference = np.ones(self.num_policies)
+        w_values = []
+        for agent in self.agents:
+            w_values.append(agent.get_w_value(x))
+        w_values = self.normalize_w(w_values) * human_preference
+        # print(x, w_values, normalized_w_values)
+        return w_values

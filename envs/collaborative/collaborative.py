@@ -4,14 +4,12 @@ from PIL import Image
 from gym.spaces import Box, Discrete
 from gymnasium.utils import EzPickle
 
-
-COST_NOOP = 0.01
-COST_MOVE = 0.1
-COST_DIAG_MOVE = 0.15
-BOUNDRY_HIT_COST = 0.1
+COST_NOOP = 0.5
+COST_MOVE = 1.0
+BOUNDRY_PENALTY = 0.1
+COST_DIAG_MOVE = 1.5
 ACTION_ARRAY = [(0, 0), (0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (1, -1), (-1, 1), (1, 1)]
 ACTION_COST = [COST_NOOP, COST_MOVE, COST_MOVE, COST_MOVE, COST_MOVE, COST_DIAG_MOVE, COST_DIAG_MOVE, COST_DIAG_MOVE, COST_DIAG_MOVE]
-LIFE_COST = 0.5
 SAFE_REWARDS = 2.0
 
 
@@ -33,19 +31,18 @@ class TestSimpleMOEnv(gym.Env, EzPickle):
         self.height = min(height, 2)
         self.max_steps = max_steps
 
-        self.meters = [5, 5]
         self.steps = 0
         self.agent = (self.width - 1, self.height - 1)
 
         self.reward_space_info = ["water", "food"]
-        self.reward_space = Box(low=np.array([-1.0, -1.0]), high=np.array([1.0, 1.0]), shape=(2,), dtype=np.float32)
+        self.reward_space = Box(low=np.array([-2.0, -2.0]), high=np.array([2.0, 2.0]), shape=(2,), dtype=np.float32)
         self.observation_space = Box(low=0, high=max(self.width, self.height), shape=(2,), dtype=np.int32)
         self.action_space = Discrete(9)  # noop, up, down, left, right, up-left, up-right, down-left, down-right = 0, 1, 2, 3, 4, 5, 6, 7
 
     def step(self, action):
 
         action_move = ACTION_ARRAY[action]
-        reward = [-ACTION_COST[action] - LIFE_COST, -ACTION_COST[action] - LIFE_COST]
+        reward = [-ACTION_COST[action], -ACTION_COST[action]]
         self.steps += 1
 
         new_location = (self.agent[0] + action_move[0], self.agent[1] + action_move[1])
@@ -53,8 +50,7 @@ class TestSimpleMOEnv(gym.Env, EzPickle):
         if new_location[0] >= 0 and new_location[0] < self.width and new_location[1] >= 0 and new_location[1] < self.height:
             self.agent = new_location
         else:
-            reward[0] = reward[0] - BOUNDRY_HIT_COST
-            reward[1] = reward[1] - BOUNDRY_HIT_COST
+            reward[0], reward[1] = reward[0] - BOUNDRY_PENALTY, reward[1] - BOUNDRY_PENALTY
 
         if self.agent[0] == 0:
             reward[0] = reward[0] + SAFE_REWARDS
@@ -68,7 +64,6 @@ class TestSimpleMOEnv(gym.Env, EzPickle):
         return np.array([self.agent[0], self.agent[1]], dtype=np.int32)
 
     def reset(self, seed=None, options=None):
-        self.meters = [5, 5]
         self.steps = 0
         self.agent = (self.width - 1, self.height - 1)
 

@@ -19,7 +19,6 @@ class DWL(AbstractAgent):
         num_policies,
         exploration_strategy: ExplorationStrategy | None,
         w_exploration_strategy: ExplorationStrategy | None,
-        w_normalization: Literal["L1", "Softmax"] = "Softmax",
         memory_size=100000,
         batch_size=1024,
         learning_rate=0.001,
@@ -47,7 +46,6 @@ class DWL(AbstractAgent):
         self.seed = seed
         self.q_learning = q_learning
         self.w_learning = w_learning
-        self.w_normalization = w_normalization
 
         # Learning parameters for DQN agents
         self.batch_size = batch_size
@@ -82,22 +80,16 @@ class DWL(AbstractAgent):
                 )
             )
 
-    def normalize_w(self, x) -> np.ndarray:
-        if self.w_normalization == "L1":
-            return l1_normalization(x)
-        return softmax(x)
-
     def get_w_values(self, x, human_preference: np.ndarray | None = None) -> np.ndarray:
         """Get the weights for the given state"""
         if human_preference is None:
-            human_preference = np.ones(self.num_policies)
+            human_preference = np.ones(self.num_policies, dtype=np.float32)
         w_values = []
         for agent in self.agents:
             w_values.append(agent.get_w_value(x))
-        normalized_w_values = self.normalize_w(w_values)
-        normalized_w_values = normalized_w_values * human_preference
+        w_values = np.array(w_values) * human_preference
         # print(x, w_values, normalized_w_values)
-        return normalized_w_values
+        return w_values
 
     def get_action(self, x, human_preference: np.ndarray | None = None) -> tuple[int, dict]:
         """Get the action nomination for the given state"""
@@ -191,4 +183,4 @@ class DWL(AbstractAgent):
         return e_x / e_x.sum()
 
     def name(self) -> str:
-        return f"DWL with {self.w_normalization}"
+        return f"DWL"

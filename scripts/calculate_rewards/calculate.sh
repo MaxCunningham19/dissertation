@@ -16,16 +16,16 @@ do
         --max_steps $max_steps \
         --images_dir images/rewards
     
-    python calc_reward_differences.py \
-        --env $env \
-        --model democratic_dwl \
-        --model_kwargs hidlyr_nodes=128 scalarization=$scalarization\
-        --model_path $model_path \
-        --max_steps $max_steps \
-        --images_dir images/rewards
-    
     for normalization in "${normalizations[@]}"
     do
+        python calc_reward_differences.py \
+            --env $env \
+            --model democratic_dwl \
+            --model_kwargs hidlyr_nodes=128 scalarization=$scalarization w_normalization=$normalization \
+            --model_path $model_path \
+            --max_steps $max_steps \
+            --images_dir images/rewards
+
         python calc_reward_differences.py \
             --env $env \
             --model scaled_democratic \
@@ -47,16 +47,13 @@ do
     done
 done
 
-for normalization in "${normalizations[@]}"
-do
-    python calc_reward_differences.py \
+python calc_reward_differences.py \
         --env $env \
         --model dwl \
-        --model_kwargs hidlyr_nodes=128 w_exploration_strategy=greedy w_normalization=$normalization \
+        --model_kwargs hidlyr_nodes=128 w_exploration_strategy=greedy \
         --model_path $model_path \
         --max_steps $max_steps \
         --images_dir images/rewards
-done
 
 python plot_reward_differences.py \
     --env $env \

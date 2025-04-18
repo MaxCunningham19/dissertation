@@ -32,18 +32,18 @@ do
             --human_preference $prefs \
             --images_dir images/collaborative/democratic/$prefs_cleaned/$scalarization
         
-        python plot_agent_actions.py \
-            --env mo-collaborative-env \
-            --model democratic_dwl \
-            --model_kwargs hidlyr_nodes=128 scalarization=$scalarization \
-            --model_path $collaborative_model_path \
-            --objective_labels food water \
-            --action_labels noop U D L R LU RU LD RD \
-            --human_preference $prefs \
-            --images_dir images/collaborative/democratic_dwl/$prefs_cleaned/$scalarization
-        
         for normalization in "${normalizations[@]}"
         do
+            python plot_agent_actions.py \
+                --env mo-collaborative-env \
+                --model democratic_dwl \
+                --model_kwargs hidlyr_nodes=128 scalarization=$scalarization w_normalization=$normalization \
+                --model_path $collaborative_model_path \
+                --objective_labels food water \
+                --action_labels noop U D L R LU RU LD RD \
+                --human_preference $prefs \
+                --images_dir images/collaborative/democratic_dwl/$prefs_cleaned/$scalarization/w_$normalization
+
             python plot_agent_actions.py \
                 --env mo-collaborative-env \
                 --model scaled_democratic \
@@ -68,16 +68,13 @@ do
             done
         done
     done
-    for normalization in "${normalizations[@]}"
-    do
-        python plot_agent_actions.py \
-            --env mo-collaborative-env \
-            --model dwl \
-            --model_kwargs hidlyr_nodes=128 w_exploration_strategy=greedy w_normalization=$normalization\
-            --model_path $collaborative_model_path \
-            --objective_labels food water \
-            --action_labels noop U D L R LU RU LD RD \
-            --human_preference $prefs \
-            --images_dir images/collaborative/dwl/$prefs_cleaned/w_$normalization
-    done
+    python plot_agent_actions.py \
+        --env mo-collaborative-env \
+        --model dwl \
+        --model_kwargs hidlyr_nodes=128 w_exploration_strategy=greedy \
+        --model_path $collaborative_model_path \
+        --objective_labels food water \
+        --action_labels noop U D L R LU RU LD RD \
+        --human_preference $prefs \
+        --images_dir images/collaborative/dwl/$prefs_cleaned
 done

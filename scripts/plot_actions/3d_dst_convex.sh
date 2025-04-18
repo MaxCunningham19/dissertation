@@ -88,18 +88,18 @@ do
             --human_preference $prefs \
             --images_dir images/dst/3d_convex/democratic/$prefs_cleaned/$scalarization
         
-        python plot_agent_actions.py \
-            --env mo-3d-deep-sea-treasure-convex-v0 \
-            --model democratic_dwl \
-            --model_kwargs hidlyr_nodes=128 scalarization=$scalarization\
-            --model_path $dst_convex_model_path \
-            --objective_labels treasure speed penalty  \
-            --action_labels U D L R \
-            --human_preference $prefs \
-            --images_dir images/dst/3d_convex/democratic_dwl/$prefs_cleaned/$scalarization
-        
         for normalization in "${normalizations[@]}"
         do
+            python plot_agent_actions.py \
+                --env mo-3d-deep-sea-treasure-convex-v0 \
+                --model democratic_dwl \
+                --model_kwargs hidlyr_nodes=128 scalarization=$scalarization w_normalization=$normalization\
+                --model_path $dst_convex_model_path \
+                --objective_labels treasure speed penalty  \
+                --action_labels U D L R \
+                --human_preference $prefs \
+                --images_dir images/dst/3d_convex/democratic_dwl/$prefs_cleaned/$scalarization/w_$normalization
+
             python plot_agent_actions.py \
                 --env mo-3d-deep-sea-treasure-convex-v0 \
                 --model scaled_democratic \
